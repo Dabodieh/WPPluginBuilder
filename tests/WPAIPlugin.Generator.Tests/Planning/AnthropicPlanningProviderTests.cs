@@ -14,12 +14,12 @@ public class AnthropicPlanningProviderTests
         string apiKey = "test-key")
     {
         var httpClient = new HttpClient(new FakeHttpMessageHandler(handler));
-        var options = Options.Create(new PlanningOptions
+        var options = new PlanningOptions
         {
             Anthropic = new AnthropicOptions { ApiKey = apiKey, Model = "claude-sonnet-5", BaseUrl = "https://api.anthropic.test" },
-        });
+        };
 
-        return new AnthropicPlanningProvider(httpClient, options, NullLogger<AnthropicPlanningProvider>.Instance);
+        return new AnthropicPlanningProvider(httpClient, new FakeOptionsMonitor<PlanningOptions>(options), NullLogger<AnthropicPlanningProvider>.Instance);
     }
 
     [Fact]

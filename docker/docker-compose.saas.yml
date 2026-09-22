@@ -1,0 +1,31 @@
+# Local PostgreSQL database for the SaaS accounts layer (Milestone 10).
+#
+# The ASP.NET application is NOT containerised - run it normally with
+# `dotnet run --project src/WPAIPlugin.Api`. This compose file provides only
+# the Postgres database it connects to.
+#
+# Separate from, and independent of, docker-compose.validate.yml (disposable
+# WordPress plugin validation) and docker-compose.dev.yml (persistent
+# WordPress dev site). Different project name, different port, different
+# volume - nothing here is shared with those.
+#
+# Not a production deployment. Development-only, throwaway local credentials.
+#
+# Persistence: wpaiplugin_saas_db is a named volume, so
+# `docker compose -f docker/docker-compose.saas.yml down` preserves account
+# data. Only `down -v` deletes it.
+name: wpaiplugin-saas
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: wpaiplugin
+      POSTGRES_USER: wpaiplugin
+      POSTGRES_PASSWORD: local-dev-only
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - wpaiplugin_saas_db:/var/lib/postgresql/data
+
+volumes:
+  wpaiplugin_saas_db:

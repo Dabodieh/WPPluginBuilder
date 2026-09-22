@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WPAIPlugin.Api.Validation;
@@ -34,6 +35,15 @@ public sealed class PluginsController : ControllerBase
 
     /// <summary>
     /// Builds a deterministic WordPress plugin ZIP from the supplied <see cref="PluginSpec"/>.
+    ///
+    /// TEMPORARY/LEGACY EXCEPTION (Milestone 11): this endpoint remains
+    /// anonymously accessible only because scripts/Validate-GeneratedPlugin.ps1
+    /// and the local build-validation harness currently depend on it. It
+    /// consumes no paid/external resource (deterministic template generation
+    /// only, no AI provider call). The SaaS browser UI no longer calls this -
+    /// it uses the authenticated POST /api/projects/build instead. This
+    /// exception is intended to be removed/locked down in a later hardening
+    /// milestone.
     /// </summary>
     [HttpPost("build")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
@@ -57,6 +67,7 @@ public sealed class PluginsController : ControllerBase
     /// activate) before returning it. The AI planning layer is never involved.
     /// Returns the ZIP only if validation passes.
     /// </summary>
+    [Authorize]
     [HttpPost("build-validated")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -114,6 +125,7 @@ public sealed class PluginsController : ControllerBase
     /// Converts a natural-language plugin description into a proposed, validated
     /// <see cref="PluginSpec"/>. Does not build or return a plugin ZIP.
     /// </summary>
+    [Authorize]
     [HttpPost("plan")]
     [ProducesResponseType(typeof(PlanPluginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

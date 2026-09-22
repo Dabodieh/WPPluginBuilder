@@ -1,5 +1,5 @@
 // Minimal client for the plan -> review -> build -> download flow.
-// Calls only the existing /api/plugins/plan and /api/plugins/build endpoints.
+// Calls only the existing /api/plugins/plan and /api/projects/build endpoints.
 // No frameworks, no build step.
 
 let currentSpec = null;
@@ -33,7 +33,6 @@ function extractErrorMessage(body) {
 async function planPlugin() {
   clearErrors();
   const description = el("description").value;
-  const provider = el("provider").value;
 
   setHidden("resultCard", true);
   el("planBtn").disabled = true;
@@ -45,7 +44,7 @@ async function planPlugin() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         description: description,
-        provider: provider || null,
+        provider: null,
       }),
     });
 
@@ -167,105 +166,100 @@ function readEditedSpec() {
   return spec;
 }
 
-async function buildPlugin() {
+async function submitProjectBuild(validated, loadingId, buttonId) {
   setHidden("buildError", true);
   setHidden("buildSuccess", true);
-
   const spec = readEditedSpec();
-
-  el("buildBtn").disabled = true;
-  setHidden("buildLoading", false);
-
+  el(buttonId).disabled = true;
+  setHidden(loadingId, false);
   try {
-    const response = await fetch("/api/plugins/build", {
+    const response = await fetch("/api/projects/build", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(spec),
+      body: JSON.stringify({ spec: spec, validated: validated }),
     });
-
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      showError("buildError", extractErrorMessage(body));
-      return;
-    }
-
-    const blob = await response.blob();
-    const disposition = response.headers.get("Content-Disposition") || "";
-    const match = /filename="?([^";]+)"?/.exec(disposition);
-    const fileName = match ? match[1] : `${spec.slug || "plugin"}.zip`;
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    const successNode = el("buildSuccess");
-    successNode.textContent = `Plugin built successfully. Downloaded ${fileName}.`;
-    successNode.hidden = false;
-  } catch (err) {
-    showError("buildError", "Could not reach the build service. Please try again.");
-  } finally {
-    el("buildBtn").disabled = false;
-    setHidden("buildLoading", true);
-  }
-}
-
-async function buildAndValidatePlugin() {
-  setHidden("buildError", true);
-  setHidden("buildSuccess", true);
-
-  const spec = readEditedSpec();
-
-  el("buildValidateBtn").disabled = true;
-  setHidden("buildValidateLoading", false);
-
-  try {
-    const response = await fetch("/api/plugins/build-validated", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(spec),
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      const message = body && body.error ? body.error : extractErrorMessage(body);
+      const message = response.status === 402
+        ? `You need ${body.required} credits to ${validated ? "build and validate" : "build"} this plugin. Current balance: ${body.balance}.`
+        : body && body.error ? body.error : extractErrorMessage(body);
       showError("buildError", message);
       return;
     }
-
-    const blob = await response.blob();
-    const disposition = response.headers.get("Content-Disposition") || "";
-    const match = /filename="?([^";]+)"?/.exec(disposition);
-    const fileName = match ? match[1] : `${spec.slug || "plugin"}.zip`;
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    const successNode = el("buildSuccess");
-    successNode.textContent =
-      `Plugin built and validated successfully.\n\n` +
-      `PHP syntax ✓\nWordPress install ✓\nPlugin activation ✓\n\n` +
-      `Downloaded ${fileName}.`;
-    successNode.style.whiteSpace = "pre-line";
-    successNode.hidden = false;
+    const result = await response.json();
+    const credits = await refreshCredits();
+    const message = validated
+      ? "Plugin built and validated successfully.\n\nPHP syntax ✓\nWordPress installation ✓\nPlugin activation ✓\n\nSaved to My Plugins."
+      : "Plugin built successfully.\n\nSaved to My Plugins.";
+    el("buildSuccessMessage").textContent = `${message}\n${result.creditsCharged} credit${result.creditsCharged === 1 ? "" : "s"} used.\n${credits ? `${credits.balance} credits remaining.` : "Refresh to check your balance."}`;
+    el("buildSuccessMessage").style.whiteSpace = "pre-line";
+    el("downloadZipLink").href = result.downloadUrl;
+    el("viewPluginLink").href = `plugin.html?id=${encodeURIComponent(result.projectId)}`;
+    setHidden("buildSuccess", false);
   } catch (err) {
-    showError("buildError", "Could not reach the validation service. Please try again.");
+    showError("buildError", "Could not reach the build service. Please try again.");
   } finally {
-    el("buildValidateBtn").disabled = false;
-    setHidden("buildValidateLoading", true);
+    await refreshCredits();
+    el(buttonId).disabled = false;
+    setHidden(loadingId, true);
   }
 }
-
+async function buildPlugin() {
+  await submitProjectBuild(false, "buildLoading", "buildBtn");
+}
+async function buildAndValidatePlugin() {
+  await submitProjectBuild(true, "buildValidateLoading", "buildValidateBtn");
+}
+el("createAnotherBtn").addEventListener("click", () => {
+  el("description").value = "";
+  currentSpec = null;
+  currentUnsupported = [];
+  setHidden("buildSuccess", true);
+  setHidden("resultCard", true);
+  el("description").focus();
+});
 el("planBtn").addEventListener("click", planPlugin);
 el("buildBtn").addEventListener("click", buildPlugin);
 el("buildValidateBtn").addEventListener("click", buildAndValidatePlugin);
+async function refreshAuthNav() {
+  try {
+    const response = await fetch("/api/account/me");
+    if (response.ok) {
+      setHidden("loggedOutNav", true);
+      setHidden("loggedInNav", false);
+    } else {
+      setHidden("loggedOutNav", false);
+      setHidden("loggedInNav", true);
+    }
+  } catch (err) {
+    setHidden("loggedOutNav", false);
+    setHidden("loggedInNav", true);
+  }
+}
+const logoutLink = el("logoutLink");
+if (logoutLink) {
+  logoutLink.addEventListener("click", async (e) => {
+    e.preventDefault();
+    try {
+      await fetch("/api/account/logout", { method: "POST" });
+    } finally {
+      window.location.href = "login.html";
+    }
+  });
+}
+refreshAuthNav();
+async function refreshCredits() {
+  try {
+    const response = await fetch("/api/credits");
+    if (!response.ok) throw new Error("Credits unavailable");
+    const credits = await response.json();
+    el("creditBalance").textContent = `Credits: ${credits.balance}`;
+    el("buildBtn").textContent = `Build Plugin — ${credits.standardBuildCost} credit${credits.standardBuildCost === 1 ? "" : "s"}`;
+    el("buildValidateBtn").textContent = `Build & Validate — ${credits.validatedBuildCost} credits`;
+    return credits;
+  } catch {
+    el("creditBalance").textContent = "Credits unavailable. Please log in or refresh.";
+    return null;
+  }
+}
+refreshCredits();

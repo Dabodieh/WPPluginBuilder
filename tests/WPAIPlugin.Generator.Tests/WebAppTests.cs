@@ -21,7 +21,7 @@ public class WebAppTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task Root_ServesUiIndexPage()
+    public async Task Root_ServesLandingPage()
     {
         var client = _factory.CreateClient();
 
@@ -29,17 +29,31 @@ public class WebAppTests : IClassFixture<WebApplicationFactory<Program>>
 
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("WPAIPlugin", body);
+    }
+
+    [Fact]
+    public async Task Builder_ServesUiPage()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/builder.html");
+
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("Plan Plugin", body);
     }
 
     [Fact]
-    public async Task Plan_BlankDescription_ReturnsBadRequest()
+    public async Task Plan_Unauthenticated_ReturnsUnauthorized()
     {
+        // /api/plugins/plan requires authentication (Milestone 11): it consumes
+        // a paid AI provider call. Covered further in Security/AuthenticationBoundaryTests.
         var client = _factory.CreateClient();
 
         var response = await client.PostAsJsonAsync("/api/plugins/plan", new { description = "" });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

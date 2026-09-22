@@ -17,5 +17,8 @@ secrets.json
 # Generated plugin ZIPs
 *.zip
 
+# Locally stored plugin build artifacts (Milestone 11)
+src/WPAIPlugin.Api/App_Data/
+
 # Local tooling state
 .claude/

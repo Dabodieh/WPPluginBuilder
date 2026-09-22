@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard - WPAI Plugin Builder</title>
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+<main class="wide" hidden id="dashboard">
+  <div class="top-nav">
+    <h1>WPAI Plugin Builder</h1>
+    <span class="who">Signed in as: <span id="userEmail"></span> &middot; <a class="link" href="#" id="logoutLink">Log out</a></span>
+  </div>
+  <p class="sub" id="welcome"></p>
+
+  <div class="tile-grid">
+    <section class="card">
+      <h2><a class="link" href="builder.html">Plugin Builder</a></h2>
+      <p>Create a new WordPress plugin.</p>
+    </section>
+    <section class="card">
+      <h2><a class="link" href="myplugins.html">My Plugins</a></h2>
+      <p>View your saved plugin builds.</p>
+    </section>
+    <section class="card">
+      <h2>Credits</h2>
+      <p id="creditBalance" role="status">Loading credits…</p>
+    </section>
+    <section class="card">
+      <h2>Billing</h2>
+      <p>Billing coming soon.</p>
+    </section>
+  </div>
+</main>
+<script>
+(async () => {
+  try {
+    const response = await fetch("/api/account/me");
+    if (!response.ok) {
+      window.location.href = "login.html";
+      return;
+    }
+    const body = await response.json();
+    document.getElementById("userEmail").textContent = body.email || "";
+    document.getElementById("welcome").textContent = "Welcome, " + (body.email || "") + ".";
+    document.getElementById("dashboard").hidden = false;
+    try {
+      const creditsResponse = await fetch("/api/credits");
+      if (!creditsResponse.ok) throw new Error("Credits unavailable");
+      const credits = await creditsResponse.json();
+      document.getElementById("creditBalance").textContent = `${credits.balance} credits remaining`;
+    } catch {
+      document.getElementById("creditBalance").textContent = "Credits unavailable. Please refresh.";
+    }
+  } catch (err) {
+    window.location.href = "login.html";
+  }
+})();
+
+document.getElementById("logoutLink").addEventListener("click", async (e) => {
+  e.preventDefault();
+  try {
+    await fetch("/api/account/logout", { method: "POST" });
+  } finally {
+    window.location.href = "login.html";
+  }
+});
+</script>
+</body>
+</html>

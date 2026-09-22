@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plugin - WPAI Plugin Builder</title>
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+<main class="wide">
+  <div class="top-nav">
+    <h1 id="pluginName">Plugin</h1>
+    <span class="who"><a class="link" href="myplugins.html">My Plugins</a></span>
+  </div>
+  <p class="sub" id="pluginMeta"></p>
+
+  <div id="notFound" class="notice error" hidden>Plugin not found.</div>
+
+  <section class="card" id="versionsCard" hidden>
+    <h2 style="font-size:16px;margin:0 0 12px">Versions</h2>
+    <div id="versionList"></div>
+  </section>
+</main>
+<script>
+const el = (id) => document.getElementById(id);
+
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  } catch (err) {
+    return iso;
+  }
+}
+
+function getProjectId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id");
+}
+
+async function loadProject() {
+  const id = getProjectId();
+  if (!id) {
+    el("notFound").hidden = false;
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(id)}`);
+    if (response.status === 401) {
+      window.location.href = "login.html";
+      return;
+    }
+    if (!response.ok) {
+      el("notFound").hidden = false;
+      return;
+    }
+
+    const project = await response.json();
+    el("pluginName").textContent = project.name;
+    el("pluginMeta").textContent =
+      `Slug: ${project.slug} · Created ${formatDate(project.createdAtUtc)} · Updated ${formatDate(project.updatedAtUtc)}`;
+
+    const list = el("versionList");
+    project.versions.forEach((v) => {
+      const row = document.createElement("div");
+      row.className = "feature-block";
+
+      const title = document.createElement("p");
+      title.style.margin = "0 0 4px";
+      title.style.fontWeight = "600";
+      title.textContent = `Revision ${v.revisionNumber} · Plugin version ${v.pluginVersion}`;
+      row.appendChild(title);
+
+      const meta = document.createElement("p");
+      meta.className = "sub";
+      meta.style.margin = "0 0 10px";
+      meta.textContent = `Validated ${v.validated ? "✓" : "—"} · ${formatDate(v.createdAtUtc)}`;
+      row.appendChild(meta);
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = v.downloadUrl;
+      const downloadBtn = document.createElement("button");
+      downloadBtn.type = "button";
+      downloadBtn.textContent = "Download ZIP";
+      downloadLink.appendChild(downloadBtn);
+      row.appendChild(downloadLink);
+
+      list.appendChild(row);
+    });
+
+    el("versionsCard").hidden = false;
+  } catch (err) {
+    el("notFound").hidden = false;
+  }
+}
+
+loadProject();
+</script>
+</body>
+</html>

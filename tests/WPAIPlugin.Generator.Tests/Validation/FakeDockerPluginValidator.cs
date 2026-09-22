@@ -8,9 +8,9 @@ namespace WPAIPlugin.Generator.Tests.Validation;
 /// execution seam so tests never run real Docker, while exercising the
 /// controller/DI path exactly as production does.
 /// </summary>
-internal sealed class FakeDockerPluginValidator : DockerPluginValidator
+public sealed class FakeDockerPluginValidator : DockerPluginValidator
 {
-    public Func<string, IEnumerable<string>, ProcessResult>? Handler { get; init; }
+    public Func<string, IEnumerable<string>, ProcessResult>? Handler { get; set; }
 
     public FakeDockerPluginValidator()
         : base(composeFilePath: "unused.yml", timeout: TimeSpan.FromSeconds(5), NullLogger<DockerPluginValidator>.Instance)

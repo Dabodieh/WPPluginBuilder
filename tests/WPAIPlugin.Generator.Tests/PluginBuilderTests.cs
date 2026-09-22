@@ -52,6 +52,25 @@ public class PluginBuilderTests
     }
 
     [Fact]
+    public void Build_Zip_NeverContainsProviderCredentialMarkers()
+    {
+        // Regression guard (security hardening milestone): the generator has
+        // no code path that reads Planning:* configuration, but this proves
+        // it directly - a known test-secret marker must never appear
+        // anywhere in a generated ZIP's raw bytes.
+        const string fakeAnthropicKey = "sk-ant-test-marker-should-never-appear";
+        const string fakeOpenAiKey = "sk-test-marker-should-never-appear";
+
+        var builder = new PluginBuilder();
+        var result = builder.Build(StaffDirectorySpec());
+
+        var zipText = System.Text.Encoding.UTF8.GetString(result.ZipBytes);
+
+        Assert.DoesNotContain(fakeAnthropicKey, zipText);
+        Assert.DoesNotContain(fakeOpenAiKey, zipText);
+    }
+
+    [Fact]
     public void Build_Zip_ContainsExpectedTopLevelDirectoryAndPhpFile()
     {
         var builder = new PluginBuilder();

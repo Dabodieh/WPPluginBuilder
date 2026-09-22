@@ -5,27 +5,31 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace WPAIPlugin.Planning.Providers.Anthropic;
+namespace WPAIPlugin.Planning.Providers.OpenAI;
 
 /// <summary>
-/// <see cref="IPlanningProvider"/> backed by the Anthropic Messages API.
-/// Forces structured JSON output via a single forced tool call (the provider's
-/// supported structured-output mechanism), so no Markdown/code-fence parsing
-/// of prose is required. All Anthropic-specific request/response shapes are
-/// private to this class; nothing vendor-specific escapes <see cref="PlanAsync"/>.
+/// <see cref="IPlanningProvider"/> backed by the OpenAI Responses API.
+/// Forces structured JSON output via a JSON Schema response format, so no
+/// Markdown/code-fence parsing of prose is required. All OpenAI-specific
+/// request/response shapes are private to this class; nothing vendor-specific
+/// escapes <see cref="PlanAsync"/>.
 /// </summary>
-public sealed class AnthropicPlanningProvider : IPlanningProvider
+public sealed class OpenAIPlanningProvider : IPlanningProvider
 {
-    public string Name => "anthropic";
+    public string Name => "openai";
 
-    private const string ToolName = "propose_plugin_spec";
+    private const string SchemaName = "plugin_spec";
 
+    // Same provider-neutral planning rules as AnthropicPlanningProvider:
+    // structured data only, never PHP/source code, only the currently
+    // supported feature set, unsupported requests go into
+    // unsupportedRequirements. Keeping the wording identical avoids any
+    // material behaviour difference between providers.
     private const string SystemPrompt = """
         You are a planning assistant for an automated WordPress plugin generator.
 
         Your ONLY job is to turn a user's natural-language request into structured
-        planning data by calling the propose_plugin_spec tool. You must call that
-        tool exactly once, with your best proposal.
+        planning data conforming to the given JSON schema.
 
         Strict rules:
         - Return structured data only. Never return PHP code. Never return Markdown.
@@ -94,11 +98,11 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
 
     private readonly HttpClient _httpClient;
     private readonly IOptionsMonitor<PlanningOptions> _optionsMonitor;
-    private readonly ILogger<AnthropicPlanningProvider> _logger;
+    private readonly ILogger<OpenAIPlanningProvider> _logger;
 
-    private AnthropicOptions _options => _optionsMonitor.CurrentValue.Anthropic;
+    private OpenAIOptions _options => _optionsMonitor.CurrentValue.OpenAI;
 
-    public AnthropicPlanningProvider(HttpClient httpClient, IOptionsMonitor<PlanningOptions> optionsMonitor, ILogger<AnthropicPlanningProvider> logger)
+    public OpenAIPlanningProvider(HttpClient httpClient, IOptionsMonitor<PlanningOptions> optionsMonitor, ILogger<OpenAIPlanningProvider> logger)
     {
         _httpClient = httpClient;
         _optionsMonitor = optionsMonitor;
@@ -109,31 +113,36 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
     {
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            _logger.LogError("Anthropic planning provider is not configured: missing API key.");
+            _logger.LogError("OpenAI planning provider is not configured: missing API key.");
             throw new PluginPlanException(PluginPlanFailureReason.ProviderFailure, "The AI planning provider is not configured.");
         }
 
         var model = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
 
-        var payload = new AnthropicMessageRequest
+        var payload = new OpenAIResponseRequest
         {
             Model = model,
-            MaxTokens = 1024,
-            System = SystemPrompt,
-            Messages = new[]
+            Input = new[]
             {
-                new AnthropicMessage { Role = "user", Content = request.Description },
+                new OpenAIInputMessage { Role = "system", Content = SystemPrompt },
+                new OpenAIInputMessage { Role = "user", Content = request.Description },
             },
-            Tools = new[] { BuildToolDefinition() },
-            ToolChoice = new AnthropicToolChoice { Type = "tool", Name = ToolName },
+            Text = new OpenAITextFormat
+            {
+                Format = new OpenAIJsonSchemaFormat
+                {
+                    Name = SchemaName,
+                    Schema = BuildJsonSchema(),
+                    Strict = true,
+                },
+            },
         };
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl.TrimEnd('/')}/v1/messages")
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl.TrimEnd('/')}/v1/responses")
         {
             Content = JsonContent.Create(payload),
         };
-        httpRequest.Headers.Add("x-api-key", _options.ApiKey);
-        httpRequest.Headers.Add("anthropic-version", "2023-06-01");
+        httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
         HttpResponseMessage httpResponse;
         try
@@ -142,12 +151,12 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogError("Anthropic planning request timed out.");
+            _logger.LogError("OpenAI planning request timed out.");
             throw new PluginPlanException(PluginPlanFailureReason.Timeout, "The AI planning provider timed out.");
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Anthropic planning request failed.");
+            _logger.LogError(ex, "OpenAI planning request failed.");
             throw new PluginPlanException(PluginPlanFailureReason.ProviderFailure, "The AI planning provider could not be reached.");
         }
 
@@ -155,25 +164,25 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         {
             if (httpResponse.StatusCode == HttpStatusCode.TooManyRequests || (int)httpResponse.StatusCode >= 500)
             {
-                _logger.LogError("Anthropic planning request failed with status {StatusCode}.", (int)httpResponse.StatusCode);
+                _logger.LogError("OpenAI planning request failed with status {StatusCode}.", (int)httpResponse.StatusCode);
                 throw new PluginPlanException(PluginPlanFailureReason.ProviderFailure, "The AI planning provider is currently unavailable.");
             }
 
             if (!httpResponse.IsSuccessStatusCode)
             {
                 // Do not surface response body: it may echo request content or provider diagnostics.
-                _logger.LogError("Anthropic planning request rejected with status {StatusCode}.", (int)httpResponse.StatusCode);
+                _logger.LogError("OpenAI planning request rejected with status {StatusCode}.", (int)httpResponse.StatusCode);
                 throw new PluginPlanException(PluginPlanFailureReason.ProviderFailure, "The AI planning provider rejected the request.");
             }
 
-            AnthropicMessageResponse? parsed;
+            OpenAIResponse? parsed;
             try
             {
-                parsed = await httpResponse.Content.ReadFromJsonAsync<AnthropicMessageResponse>(cancellationToken: cancellationToken);
+                parsed = await httpResponse.Content.ReadFromJsonAsync<OpenAIResponse>(cancellationToken: cancellationToken);
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Anthropic planning response was not valid JSON.");
+                _logger.LogError(ex, "OpenAI planning response was not valid JSON.");
                 throw new PluginPlanException(PluginPlanFailureReason.MalformedProviderOutput, "The AI planning provider returned a malformed response.");
             }
 
@@ -181,9 +190,8 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         }
     }
 
-    private static AnthropicToolDefinition BuildToolDefinition()
+    private static JsonElement BuildJsonSchema()
     {
-        // JSON Schema describing the exact structured shape we require back.
         var schema = new
         {
             type = "object",
@@ -198,7 +206,7 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                 unsupportedRequirements = new { type = "array", items = new { type = "string" } },
                 customPostType = new
                 {
-                    type = "object",
+                    type = new[] { "object", "null" },
                     properties = new
                     {
                         singularName = new { type = "string" },
@@ -208,10 +216,11 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                         hasArchive = new { type = "boolean" },
                     },
                     required = new[] { "singularName", "pluralName", "slug", "public", "hasArchive" },
+                    additionalProperties = false,
                 },
                 settingsPage = new
                 {
-                    type = "object",
+                    type = new[] { "object", "null" },
                     properties = new
                     {
                         pageTitle = new { type = "string" },
@@ -227,17 +236,19 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                                     key = new { type = "string" },
                                     label = new { type = "string" },
                                     type = new { type = "string", @enum = new[] { "text", "textarea", "checkbox" } },
-                                    defaultValue = new { type = "string" },
+                                    defaultValue = new { type = new[] { "string", "null" } },
                                 },
-                                required = new[] { "key", "label", "type" },
+                                required = new[] { "key", "label", "type", "defaultValue" },
+                                additionalProperties = false,
                             },
                         },
                     },
                     required = new[] { "pageTitle", "menuTitle", "fields" },
+                    additionalProperties = false,
                 },
                 customFields = new
                 {
-                    type = "object",
+                    type = new[] { "object", "null" },
                     properties = new
                     {
                         postType = new { type = "string" },
@@ -254,14 +265,16 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                                     type = new { type = "string", @enum = new[] { "text", "textarea", "checkbox" } },
                                 },
                                 required = new[] { "key", "label", "type" },
+                                additionalProperties = false,
                             },
                         },
                     },
                     required = new[] { "postType", "fields" },
+                    additionalProperties = false,
                 },
                 scheduledTask = new
                 {
-                    type = "object",
+                    type = new[] { "object", "null" },
                     properties = new
                     {
                         taskName = new { type = "string" },
@@ -269,25 +282,48 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                         hookName = new { type = "string" },
                     },
                     required = new[] { "taskName", "schedule", "hookName" },
+                    additionalProperties = false,
                 },
             },
-            required = new[] { "name", "slug", "description", "version", "author", "features", "unsupportedRequirements" },
+            required = new[]
+            {
+                "name", "slug", "description", "version", "author", "features",
+                "unsupportedRequirements", "customPostType", "settingsPage", "customFields", "scheduledTask",
+            },
+            additionalProperties = false,
         };
 
-        return new AnthropicToolDefinition
-        {
-            Name = ToolName,
-            Description = "Propose a structured WordPress plugin specification for the requested plugin.",
-            InputSchema = JsonSerializer.SerializeToElement(schema),
-        };
+        return JsonSerializer.SerializeToElement(schema);
     }
 
-    private PlanningResult ExtractPlanningResult(AnthropicMessageResponse? response)
+    private PlanningResult ExtractPlanningResult(OpenAIResponse? response)
     {
-        var toolUseBlock = response?.Content?.FirstOrDefault(c => c.Type == "tool_use" && c.Name == ToolName);
-        if (toolUseBlock?.Input is not JsonElement input || input.ValueKind != JsonValueKind.Object)
+        var outputText = response?.Output?
+            .Where(o => o.Type == "message")
+            .SelectMany(o => o.Content ?? Array.Empty<OpenAIOutputContent>())
+            .FirstOrDefault(c => c.Type == "output_text")?.Text;
+
+        if (string.IsNullOrWhiteSpace(outputText))
         {
-            _logger.LogError("Anthropic planning response did not contain the expected tool_use block.");
+            _logger.LogError("OpenAI planning response did not contain the expected structured output.");
+            throw new PluginPlanException(PluginPlanFailureReason.MalformedProviderOutput, "The AI planning provider returned an unexpected response shape.");
+        }
+
+        JsonElement input;
+        try
+        {
+            using var document = JsonDocument.Parse(outputText);
+            input = document.RootElement.Clone();
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "OpenAI planning structured output was not valid JSON.");
+            throw new PluginPlanException(PluginPlanFailureReason.MalformedProviderOutput, "The AI planning provider returned a malformed response.");
+        }
+
+        if (input.ValueKind != JsonValueKind.Object)
+        {
+            _logger.LogError("OpenAI planning structured output was not a JSON object.");
             throw new PluginPlanException(PluginPlanFailureReason.MalformedProviderOutput, "The AI planning provider returned an unexpected response shape.");
         }
 
@@ -322,7 +358,7 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogError(ex, "Anthropic planning tool input was missing a required field.");
+            _logger.LogError(ex, "OpenAI planning structured output was missing a required field.");
             throw new PluginPlanException(PluginPlanFailureReason.MalformedProviderOutput, "The AI planning provider returned an incomplete response.");
         }
     }
@@ -450,28 +486,19 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
             .ToList();
     }
 
-    private sealed class AnthropicMessageRequest
+    private sealed class OpenAIResponseRequest
     {
         [JsonPropertyName("model")]
         public required string Model { get; init; }
 
-        [JsonPropertyName("max_tokens")]
-        public required int MaxTokens { get; init; }
+        [JsonPropertyName("input")]
+        public required OpenAIInputMessage[] Input { get; init; }
 
-        [JsonPropertyName("system")]
-        public required string System { get; init; }
-
-        [JsonPropertyName("messages")]
-        public required AnthropicMessage[] Messages { get; init; }
-
-        [JsonPropertyName("tools")]
-        public required AnthropicToolDefinition[] Tools { get; init; }
-
-        [JsonPropertyName("tool_choice")]
-        public required AnthropicToolChoice ToolChoice { get; init; }
+        [JsonPropertyName("text")]
+        public required OpenAITextFormat Text { get; init; }
     }
 
-    private sealed class AnthropicMessage
+    private sealed class OpenAIInputMessage
     {
         [JsonPropertyName("role")]
         public required string Role { get; init; }
@@ -480,42 +507,48 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         public required string Content { get; init; }
     }
 
-    private sealed class AnthropicToolDefinition
+    private sealed class OpenAITextFormat
     {
-        [JsonPropertyName("name")]
-        public required string Name { get; init; }
-
-        [JsonPropertyName("description")]
-        public required string Description { get; init; }
-
-        [JsonPropertyName("input_schema")]
-        public required JsonElement InputSchema { get; init; }
+        [JsonPropertyName("format")]
+        public required OpenAIJsonSchemaFormat Format { get; init; }
     }
 
-    private sealed class AnthropicToolChoice
+    private sealed class OpenAIJsonSchemaFormat
     {
         [JsonPropertyName("type")]
-        public required string Type { get; init; }
+        public string Type { get; init; } = "json_schema";
 
         [JsonPropertyName("name")]
         public required string Name { get; init; }
+
+        [JsonPropertyName("schema")]
+        public required JsonElement Schema { get; init; }
+
+        [JsonPropertyName("strict")]
+        public required bool Strict { get; init; }
     }
 
-    private sealed class AnthropicMessageResponse
+    private sealed class OpenAIResponse
     {
-        [JsonPropertyName("content")]
-        public AnthropicContentBlock[]? Content { get; init; }
+        [JsonPropertyName("output")]
+        public OpenAIOutputItem[]? Output { get; init; }
     }
 
-    private sealed class AnthropicContentBlock
+    private sealed class OpenAIOutputItem
     {
         [JsonPropertyName("type")]
         public string? Type { get; init; }
 
-        [JsonPropertyName("name")]
-        public string? Name { get; init; }
+        [JsonPropertyName("content")]
+        public OpenAIOutputContent[]? Content { get; init; }
+    }
 
-        [JsonPropertyName("input")]
-        public JsonElement? Input { get; init; }
+    private sealed class OpenAIOutputContent
+    {
+        [JsonPropertyName("type")]
+        public string? Type { get; init; }
+
+        [JsonPropertyName("text")]
+        public string? Text { get; init; }
     }
 }

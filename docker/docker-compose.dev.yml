@@ -1,0 +1,47 @@
+# Persistent local WordPress development site, for manually testing
+# WPAIPlugin-generated plugin ZIPs through the real wp-admin UI:
+# Plugins -> Add Plugin -> Upload Plugin -> Install Now -> Activate.
+#
+# This is separate from, and independent of, docker/docker-compose.validate.yml
+# (the disposable automated validation environment used by
+# DockerPluginValidator and scripts/Validate-GeneratedPlugin.ps1). Different
+# project name, different volumes, different port - nothing here is shared
+# with or read by that environment.
+#
+# Not a production deployment. Development-only, throwaway local credentials.
+#
+# Persistence: wp_dev_db and wp_dev_files are named volumes, so
+# `docker compose -f docker/docker-compose.dev.yml down` preserves the site.
+# Only `down -v` deletes it.
+#
+# No WordPress setup is run automatically - browse to the URL below and
+# complete the normal WordPress installer by hand.
+name: wpaiplugin-dev
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: dev-root-pw
+      MARIADB_DATABASE: wordpress_dev
+      MARIADB_USER: wordpress_dev
+      MARIADB_PASSWORD: dev-wp-pw
+    volumes:
+      - wp_dev_db:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress_dev
+      WORDPRESS_DB_USER: wordpress_dev
+      WORDPRESS_DB_PASSWORD: dev-wp-pw
+    ports:
+      - "127.0.0.1:18437:80"
+    volumes:
+      - wp_dev_files:/var/www/html
+
+volumes:
+  wp_dev_db:
+  wp_dev_files:
