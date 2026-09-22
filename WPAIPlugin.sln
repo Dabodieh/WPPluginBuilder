@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EC031DD1-8A49-4585-98C3-2B06FC2A3851}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPAIPlugin.Api", "src\WPAIPlugin.Api\WPAIPlugin.Api.csproj", "{5AB004FB-4B5C-40C2-83A3-E9EE6D5F42B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPAIPlugin.Generator", "src\WPAIPlugin.Generator\WPAIPlugin.Generator.csproj", "{093A0BE6-12F7-478C-9932-3984D7919B3B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPAIPlugin.Templates", "src\WPAIPlugin.Templates\WPAIPlugin.Templates.csproj", "{59E2B9DA-AC5F-43AC-ADFE-89A6C0A3BB9D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{55483AD9-46A3-4E6B-A7ED-231D7D0F60DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPAIPlugin.Generator.Tests", "tests\WPAIPlugin.Generator.Tests\WPAIPlugin.Generator.Tests.csproj", "{1B6307B5-CD2E-4DCA-9AC7-E8373BEEDF47}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPAIPlugin.Planning", "src\WPAIPlugin.Planning\WPAIPlugin.Planning.csproj", "{ADAE150F-3644-458B-8641-E8306DCA9669}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5AB004FB-4B5C-40C2-83A3-E9EE6D5F42B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AB004FB-4B5C-40C2-83A3-E9EE6D5F42B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AB004FB-4B5C-40C2-83A3-E9EE6D5F42B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AB004FB-4B5C-40C2-83A3-E9EE6D5F42B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{093A0BE6-12F7-478C-9932-3984D7919B3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{093A0BE6-12F7-478C-9932-3984D7919B3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{093A0BE6-12F7-478C-9932-3984D7919B3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{093A0BE6-12F7-478C-9932-3984D7919B3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59E2B9DA-AC5F-43AC-ADFE-89A6C0A3BB9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59E2B9DA-AC5F-43AC-ADFE-89A6C0A3BB9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59E2B9DA-AC5F-43AC-ADFE-89A6C0A3BB9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59E2B9DA-AC5F-43AC-ADFE-89A6C0A3BB9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B6307B5-CD2E-4DCA-9AC7-E8373BEEDF47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B6307B5-CD2E-4DCA-9AC7-E8373BEEDF47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B6307B5-CD2E-4DCA-9AC7-E8373BEEDF47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B6307B5-CD2E-4DCA-9AC7-E8373BEEDF47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADAE150F-3644-458B-8641-E8306DCA9669}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADAE150F-3644-458B-8641-E8306DCA9669}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADAE150F-3644-458B-8641-E8306DCA9669}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADAE150F-3644-458B-8641-E8306DCA9669}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5AB004FB-4B5C-40C2-83A3-E9EE6D5F42B0} = {EC031DD1-8A49-4585-98C3-2B06FC2A3851}
+		{093A0BE6-12F7-478C-9932-3984D7919B3B} = {EC031DD1-8A49-4585-98C3-2B06FC2A3851}
+		{59E2B9DA-AC5F-43AC-ADFE-89A6C0A3BB9D} = {EC031DD1-8A49-4585-98C3-2B06FC2A3851}
+		{1B6307B5-CD2E-4DCA-9AC7-E8373BEEDF47} = {55483AD9-46A3-4E6B-A7ED-231D7D0F60DC}
+		{ADAE150F-3644-458B-8641-E8306DCA9669} = {EC031DD1-8A49-4585-98C3-2B06FC2A3851}
+	EndGlobalSection
+EndGlobal

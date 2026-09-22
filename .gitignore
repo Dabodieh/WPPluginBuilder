@@ -1,0 +1,18 @@
+bin/
+obj/
+.vs/
+*.user
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+
+# Secrets / local overrides
+.env
+.env.*
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+
+# Generated plugin ZIPs
+*.zip
