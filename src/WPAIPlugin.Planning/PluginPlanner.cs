@@ -60,6 +60,10 @@ public sealed class PluginPlanner : IPluginPlanner
             Version = result.Version,
             Author = result.Author,
             Features = result.Features.ToList(),
+            CustomPostType = result.CustomPostType,
+            SettingsPage = result.SettingsPage,
+            CustomFields = result.CustomFields,
+            ScheduledTask = result.ScheduledTask,
         };
 
         var validation = PluginSpecValidator.Validate(spec);

@@ -59,6 +59,36 @@ public sealed class PluginBuilder
             featureBlocks.Add(ShortcodeTemplate.Render(spec.Slug, spec.Name));
         }
 
+        if (spec.Features.Contains(PluginFeature.CustomPostType, StringComparer.OrdinalIgnoreCase))
+        {
+            var cpt = spec.CustomPostType!;
+            featureBlocks.Add(CustomPostTypeTemplate.Render(cpt.Slug, cpt.SingularName, cpt.PluralName, cpt.Public, cpt.HasArchive));
+        }
+
+        if (spec.Features.Contains(PluginFeature.SettingsPage, StringComparer.OrdinalIgnoreCase))
+        {
+            var settingsPage = spec.SettingsPage!;
+            var fields = settingsPage.Fields
+                .Select(f => (f.Key, f.Label, f.Type, f.DefaultValue))
+                .ToList();
+            featureBlocks.Add(SettingsPageTemplate.Render(spec.Slug, settingsPage.PageTitle, settingsPage.MenuTitle, fields));
+        }
+
+        if (spec.Features.Contains(PluginFeature.CustomFields, StringComparer.OrdinalIgnoreCase))
+        {
+            var customFields = spec.CustomFields!;
+            var fields = customFields.Fields
+                .Select(f => (f.Key, f.Label, f.Type))
+                .ToList();
+            featureBlocks.Add(CustomFieldsTemplate.Render(spec.Slug, customFields.PostType, fields));
+        }
+
+        if (spec.Features.Contains(PluginFeature.ScheduledTask, StringComparer.OrdinalIgnoreCase))
+        {
+            var task = spec.ScheduledTask!;
+            featureBlocks.Add(ScheduledTaskTemplate.Render(spec.Slug, task.TaskName, task.Schedule, task.HookName));
+        }
+
         var mainFileContent = MainPluginFileTemplate.Render(
             spec.Name,
             spec.Slug,

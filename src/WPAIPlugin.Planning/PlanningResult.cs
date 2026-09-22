@@ -1,3 +1,5 @@
+using WPAIPlugin.Generator.Models;
+
 namespace WPAIPlugin.Planning;
 
 /// <summary>
@@ -20,4 +22,12 @@ public sealed class PlanningResult
     public required IReadOnlyList<string> Features { get; init; }
 
     public required IReadOnlyList<string> UnsupportedRequirements { get; init; }
+
+    public CustomPostTypeSpec? CustomPostType { get; init; }
+
+    public SettingsPageSpec? SettingsPage { get; init; }
+
+    public CustomFieldsSpec? CustomFields { get; init; }
+
+    public ScheduledTaskSpec? ScheduledTask { get; init; }
 }

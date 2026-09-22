@@ -30,8 +30,53 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         Strict rules:
         - Return structured data only. Never return PHP code. Never return Markdown.
         - Never invent or claim support for features the generator does not have.
-        - The ONLY currently supported feature is "shortcode". The features array
+        - The ONLY currently supported features are "shortcode", "custom-post-type",
+          "settings-page", "custom-fields", and "scheduled-task". The features array
           may contain only values from this set (it may be empty).
+        - Include "custom-post-type" in features, and fill in customPostType, ONLY when
+          the user actually asked for a custom content type/post type (e.g. "staff
+          members", "listings", "events" as a distinct content type). customPostType
+          requires: singularName, pluralName, slug (URL-safe: lowercase letters, digits,
+          hyphens only, no leading/trailing hyphen), public (default true), and
+          hasArchive (default false). Omit customPostType entirely if the feature is
+          not requested.
+        - Include "settings-page" in features, and fill in settingsPage, ONLY when the
+          user actually asked for an admin settings/options page. settingsPage requires:
+          pageTitle, menuTitle, and fields (at least one). Each field requires: key
+          (snake_case: lowercase letters, digits, underscores, starting with a letter),
+          label, type, and optionally defaultValue. type must be one of "text",
+          "textarea", or "checkbox" — these are the ONLY supported field types. If the
+          user asks for a field type that is not one of these (e.g. select, radio,
+          colour picker, media upload, file upload), do NOT add that field and do NOT
+          add "settings-page" support for it if no valid field remains; instead list it
+          in unsupportedRequirements. Omit settingsPage entirely if the feature is not
+          requested.
+        - Include "custom-fields" in features, and fill in customFields, ONLY when the
+          user asked for custom fields/meta fields attached to a custom post type
+          defined in this same plan. customFields requires: postType (must equal the
+          slug of the customPostType you are proposing in this same response — custom
+          fields ALWAYS need a matching custom post type in the same plan), and fields
+          (at least one). Each field requires: key (snake_case: lowercase letters,
+          digits, underscores, starting with a letter), label, and type. type must be
+          one of "text", "textarea", or "checkbox" — these are the ONLY supported
+          custom field types. If the user's post type request does not also include
+          "custom-post-type" in this plan, do NOT add "custom-fields" either; instead
+          note it in unsupportedRequirements. If a requested field type is not one of
+          the three supported types (e.g. date, media, select, repeater, relationship,
+          taxonomy), do NOT add that field; list it in unsupportedRequirements instead.
+          Omit customFields entirely if the feature is not requested.
+        - Include "scheduled-task" in features, and fill in scheduledTask, ONLY when the
+          user asked for a recurring/scheduled background task (e.g. "run a cleanup
+          every hour", "send a daily digest"). scheduledTask requires: taskName, a
+          human-readable label; schedule, one of "hourly", "twicedaily", or "daily" —
+          these are the ONLY supported schedules, never propose a custom interval; and
+          hookName (snake_case: lowercase letters, digits, underscores, starting with a
+          letter). The generated task callback is ALWAYS a deterministic placeholder —
+          you must never describe, imply, or supply what the task's callback code
+          should do; only the schedule metadata is used. If the user asks for a custom
+          interval not in the supported set, or for queue/background-worker behavior,
+          do NOT add scheduled-task for it; list it in unsupportedRequirements instead.
+          Omit scheduledTask entirely if the feature is not requested.
         - version must default to "1.0.0" unless the user explicitly requests a different version.
         - author must default to "WPAI Plugin Builder" unless the user explicitly names an author.
         - slug must be a URL-safe WordPress plugin slug: lowercase letters, digits,
@@ -39,9 +84,11 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
           spaces, underscores, dots, slashes, or backslashes.
         - If the user's request needs functionality beyond what is currently supported
           (e.g. booking calendars, payments, email notifications, admin UI beyond a
-          shortcode, custom database tables), do NOT add it to features and do NOT
-          pretend it is supported. Instead list each such requirement, in the user's
-          own terms, in unsupportedRequirements.
+          shortcode, custom database tables, taxonomies, select/radio/colour-picker/
+          media-upload/date/repeater/relationship fields, tabs, frontend forms, custom
+          cron intervals, queues, background workers), do NOT add it to features and do
+          NOT pretend it is supported. Instead list each such requirement, in the
+          user's own terms, in unsupportedRequirements.
         - Do not fabricate functionality that was not requested.
         """;
 
@@ -147,6 +194,80 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                 author = new { type = "string" },
                 features = new { type = "array", items = new { type = "string" } },
                 unsupportedRequirements = new { type = "array", items = new { type = "string" } },
+                customPostType = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        singularName = new { type = "string" },
+                        pluralName = new { type = "string" },
+                        slug = new { type = "string" },
+                        @public = new { type = "boolean" },
+                        hasArchive = new { type = "boolean" },
+                    },
+                    required = new[] { "singularName", "pluralName", "slug", "public", "hasArchive" },
+                },
+                settingsPage = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        pageTitle = new { type = "string" },
+                        menuTitle = new { type = "string" },
+                        fields = new
+                        {
+                            type = "array",
+                            items = new
+                            {
+                                type = "object",
+                                properties = new
+                                {
+                                    key = new { type = "string" },
+                                    label = new { type = "string" },
+                                    type = new { type = "string", @enum = new[] { "text", "textarea", "checkbox" } },
+                                    defaultValue = new { type = "string" },
+                                },
+                                required = new[] { "key", "label", "type" },
+                            },
+                        },
+                    },
+                    required = new[] { "pageTitle", "menuTitle", "fields" },
+                },
+                customFields = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        postType = new { type = "string" },
+                        fields = new
+                        {
+                            type = "array",
+                            items = new
+                            {
+                                type = "object",
+                                properties = new
+                                {
+                                    key = new { type = "string" },
+                                    label = new { type = "string" },
+                                    type = new { type = "string", @enum = new[] { "text", "textarea", "checkbox" } },
+                                },
+                                required = new[] { "key", "label", "type" },
+                            },
+                        },
+                    },
+                    required = new[] { "postType", "fields" },
+                },
+                scheduledTask = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        taskName = new { type = "string" },
+                        schedule = new { type = "string", @enum = new[] { "hourly", "twicedaily", "daily" } },
+                        hookName = new { type = "string" },
+                    },
+                    required = new[] { "taskName", "schedule", "hookName" },
+                },
             },
             required = new[] { "name", "slug", "description", "version", "author", "features", "unsupportedRequirements" },
         };
@@ -177,6 +298,10 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
             var author = GetRequiredString(input, "author");
             var features = GetStringArray(input, "features");
             var unsupported = GetStringArray(input, "unsupportedRequirements");
+            var customPostType = GetCustomPostType(input);
+            var settingsPage = GetSettingsPage(input);
+            var customFields = GetCustomFields(input);
+            var scheduledTask = GetScheduledTask(input);
 
             return new PlanningResult
             {
@@ -187,6 +312,10 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
                 Author = author,
                 Features = features,
                 UnsupportedRequirements = unsupported,
+                CustomPostType = customPostType,
+                SettingsPage = settingsPage,
+                CustomFields = customFields,
+                ScheduledTask = scheduledTask,
             };
         }
         catch (KeyNotFoundException ex)
@@ -204,6 +333,106 @@ public sealed class AnthropicPlanningProvider : IPlanningProvider
         }
 
         return value.GetString()!;
+    }
+
+    private static Generator.Models.CustomPostTypeSpec? GetCustomPostType(JsonElement obj)
+    {
+        if (!obj.TryGetProperty("customPostType", out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return new Generator.Models.CustomPostTypeSpec
+        {
+            SingularName = value.TryGetProperty("singularName", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString()! : string.Empty,
+            PluralName = value.TryGetProperty("pluralName", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString()! : string.Empty,
+            Slug = value.TryGetProperty("slug", out var sl) && sl.ValueKind == JsonValueKind.String ? sl.GetString()! : string.Empty,
+            Public = value.TryGetProperty("public", out var pub) && pub.ValueKind is JsonValueKind.True or JsonValueKind.False ? pub.GetBoolean() : true,
+            HasArchive = value.TryGetProperty("hasArchive", out var ha) && ha.ValueKind is JsonValueKind.True or JsonValueKind.False && ha.GetBoolean(),
+        };
+    }
+
+    private static Generator.Models.SettingsPageSpec? GetSettingsPage(JsonElement obj)
+    {
+        if (!obj.TryGetProperty("settingsPage", out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var fields = new List<Generator.Models.SettingsFieldSpec>();
+        if (value.TryGetProperty("fields", out var fieldsElement) && fieldsElement.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var fieldElement in fieldsElement.EnumerateArray())
+            {
+                if (fieldElement.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                fields.Add(new Generator.Models.SettingsFieldSpec
+                {
+                    Key = fieldElement.TryGetProperty("key", out var k) && k.ValueKind == JsonValueKind.String ? k.GetString()! : string.Empty,
+                    Label = fieldElement.TryGetProperty("label", out var l) && l.ValueKind == JsonValueKind.String ? l.GetString()! : string.Empty,
+                    Type = fieldElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString()! : string.Empty,
+                    DefaultValue = fieldElement.TryGetProperty("defaultValue", out var d) && d.ValueKind == JsonValueKind.String ? d.GetString() : null,
+                });
+            }
+        }
+
+        return new Generator.Models.SettingsPageSpec
+        {
+            PageTitle = value.TryGetProperty("pageTitle", out var pt) && pt.ValueKind == JsonValueKind.String ? pt.GetString()! : string.Empty,
+            MenuTitle = value.TryGetProperty("menuTitle", out var mt) && mt.ValueKind == JsonValueKind.String ? mt.GetString()! : string.Empty,
+            Fields = fields,
+        };
+    }
+
+    private static Generator.Models.CustomFieldsSpec? GetCustomFields(JsonElement obj)
+    {
+        if (!obj.TryGetProperty("customFields", out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var fields = new List<Generator.Models.CustomFieldSpec>();
+        if (value.TryGetProperty("fields", out var fieldsElement) && fieldsElement.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var fieldElement in fieldsElement.EnumerateArray())
+            {
+                if (fieldElement.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                fields.Add(new Generator.Models.CustomFieldSpec
+                {
+                    Key = fieldElement.TryGetProperty("key", out var k) && k.ValueKind == JsonValueKind.String ? k.GetString()! : string.Empty,
+                    Label = fieldElement.TryGetProperty("label", out var l) && l.ValueKind == JsonValueKind.String ? l.GetString()! : string.Empty,
+                    Type = fieldElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString()! : string.Empty,
+                });
+            }
+        }
+
+        return new Generator.Models.CustomFieldsSpec
+        {
+            PostType = value.TryGetProperty("postType", out var pt) && pt.ValueKind == JsonValueKind.String ? pt.GetString()! : string.Empty,
+            Fields = fields,
+        };
+    }
+
+    private static Generator.Models.ScheduledTaskSpec? GetScheduledTask(JsonElement obj)
+    {
+        if (!obj.TryGetProperty("scheduledTask", out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return new Generator.Models.ScheduledTaskSpec
+        {
+            TaskName = value.TryGetProperty("taskName", out var tn) && tn.ValueKind == JsonValueKind.String ? tn.GetString()! : string.Empty,
+            Schedule = value.TryGetProperty("schedule", out var sc) && sc.ValueKind == JsonValueKind.String ? sc.GetString()! : string.Empty,
+            HookName = value.TryGetProperty("hookName", out var hn) && hn.ValueKind == JsonValueKind.String ? hn.GetString()! : string.Empty,
+        };
     }
 
     private static IReadOnlyList<string> GetStringArray(JsonElement obj, string propertyName)

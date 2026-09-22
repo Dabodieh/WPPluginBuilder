@@ -16,4 +16,12 @@ public sealed class PluginSpec
     public string Author { get; set; } = string.Empty;
 
     public List<string> Features { get; set; } = new();
+
+    public CustomPostTypeSpec? CustomPostType { get; set; }
+
+    public SettingsPageSpec? SettingsPage { get; set; }
+
+    public CustomFieldsSpec? CustomFields { get; set; }
+
+    public ScheduledTaskSpec? ScheduledTask { get; set; }
 }

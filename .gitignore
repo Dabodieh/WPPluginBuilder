@@ -16,3 +16,6 @@ secrets.json
 
 # Generated plugin ZIPs
 *.zip
+
+# Local tooling state
+.claude/

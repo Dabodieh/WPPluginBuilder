@@ -1,3 +1,4 @@
+using WPAIPlugin.Generator.Models;
 using WPAIPlugin.Planning;
 using Xunit;
 
@@ -23,6 +24,148 @@ public class PluginPlannerTests
         Assert.Equal("1.0.0", result.Spec.Version);
         Assert.Equal("WPAI Plugin Builder", result.Spec.Author);
         Assert.Contains("shortcode", result.Spec.Features);
+        Assert.Empty(result.UnsupportedRequirements);
+    }
+
+    [Fact]
+    public async Task PlanAsync_ProviderReturnsCustomPostType_MapsThroughToValidatedSpec()
+    {
+        var provider = new FakePlanningProvider
+        {
+            Handler = (_, _) => Task.FromResult(new PlanningResult
+            {
+                Name = "Staff Directory",
+                Slug = "staff-directory",
+                Description = "A staff directory plugin.",
+                Version = "1.0.0",
+                Author = "WPAI Plugin Builder",
+                Features = new[] { "custom-post-type" },
+                UnsupportedRequirements = Array.Empty<string>(),
+                CustomPostType = new CustomPostTypeSpec
+                {
+                    SingularName = "Staff Member",
+                    PluralName = "Staff Members",
+                    Slug = "staff-member",
+                    Public = true,
+                    HasArchive = false,
+                },
+            }),
+        };
+        var planner = CreatePlanner(provider);
+
+        var result = await planner.PlanAsync("Create a staff directory with a staff member custom post type.");
+
+        Assert.Contains("custom-post-type", result.Spec.Features);
+        Assert.NotNull(result.Spec.CustomPostType);
+        Assert.Equal("staff-member", result.Spec.CustomPostType!.Slug);
+        Assert.Empty(result.UnsupportedRequirements);
+    }
+
+    [Fact]
+    public async Task PlanAsync_ProviderReturnsSettingsPage_MapsThroughToValidatedSpec()
+    {
+        var provider = new FakePlanningProvider
+        {
+            Handler = (_, _) => Task.FromResult(new PlanningResult
+            {
+                Name = "Staff Directory",
+                Slug = "staff-directory",
+                Description = "A staff directory plugin.",
+                Version = "1.0.0",
+                Author = "WPAI Plugin Builder",
+                Features = new[] { "settings-page" },
+                UnsupportedRequirements = Array.Empty<string>(),
+                SettingsPage = new SettingsPageSpec
+                {
+                    PageTitle = "Staff Directory Settings",
+                    MenuTitle = "Staff Directory",
+                    Fields = new List<SettingsFieldSpec>
+                    {
+                        new() { Key = "api_key", Label = "API Key", Type = "text" },
+                    },
+                },
+            }),
+        };
+        var planner = CreatePlanner(provider);
+
+        var result = await planner.PlanAsync("Create a staff directory with a settings page for an API key.");
+
+        Assert.Contains("settings-page", result.Spec.Features);
+        Assert.NotNull(result.Spec.SettingsPage);
+        Assert.Single(result.Spec.SettingsPage!.Fields);
+        Assert.Empty(result.UnsupportedRequirements);
+    }
+
+    [Fact]
+    public async Task PlanAsync_ProviderReturnsCustomFields_MapsThroughToValidatedSpec()
+    {
+        var provider = new FakePlanningProvider
+        {
+            Handler = (_, _) => Task.FromResult(new PlanningResult
+            {
+                Name = "Staff Directory",
+                Slug = "staff-directory",
+                Description = "A staff directory plugin.",
+                Version = "1.0.0",
+                Author = "WPAI Plugin Builder",
+                Features = new[] { "custom-post-type", "custom-fields" },
+                UnsupportedRequirements = Array.Empty<string>(),
+                CustomPostType = new CustomPostTypeSpec
+                {
+                    SingularName = "Staff Member",
+                    PluralName = "Staff Members",
+                    Slug = "staff-member",
+                },
+                CustomFields = new CustomFieldsSpec
+                {
+                    PostType = "staff-member",
+                    Fields = new List<CustomFieldSpec>
+                    {
+                        new() { Key = "job_title", Label = "Job Title", Type = "text" },
+                    },
+                },
+            }),
+        };
+        var planner = CreatePlanner(provider);
+
+        var result = await planner.PlanAsync("Create a staff directory with a staff member post type and a job title custom field.");
+
+        Assert.Contains("custom-fields", result.Spec.Features);
+        Assert.NotNull(result.Spec.CustomFields);
+        Assert.Equal("staff-member", result.Spec.CustomFields!.PostType);
+        Assert.Single(result.Spec.CustomFields.Fields);
+        Assert.Empty(result.UnsupportedRequirements);
+    }
+
+    [Fact]
+    public async Task PlanAsync_ProviderReturnsScheduledTask_MapsThroughToValidatedSpec()
+    {
+        var provider = new FakePlanningProvider
+        {
+            Handler = (_, _) => Task.FromResult(new PlanningResult
+            {
+                Name = "Staff Directory",
+                Slug = "staff-directory",
+                Description = "A staff directory plugin.",
+                Version = "1.0.0",
+                Author = "WPAI Plugin Builder",
+                Features = new[] { "scheduled-task" },
+                UnsupportedRequirements = Array.Empty<string>(),
+                ScheduledTask = new ScheduledTaskSpec
+                {
+                    TaskName = "Cleanup Old Entries",
+                    Schedule = "daily",
+                    HookName = "staff_directory_cleanup",
+                },
+            }),
+        };
+        var planner = CreatePlanner(provider);
+
+        var result = await planner.PlanAsync("Create a staff directory with a daily cleanup task.");
+
+        Assert.Contains("scheduled-task", result.Spec.Features);
+        Assert.NotNull(result.Spec.ScheduledTask);
+        Assert.Equal("daily", result.Spec.ScheduledTask!.Schedule);
         Assert.Empty(result.UnsupportedRequirements);
     }
 

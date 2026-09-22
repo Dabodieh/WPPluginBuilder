@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using WPAIPlugin.Api.Controllers;
+using WPAIPlugin.Api.Validation;
+using WPAIPlugin.Generator.Tests.Validation;
 using WPAIPlugin.Planning;
 using Xunit;
 
@@ -10,7 +13,12 @@ namespace WPAIPlugin.Generator.Tests.Planning;
 public class PluginsControllerPlanTests
 {
     private static PluginsController CreateController(FakePluginPlanner planner) =>
-        new(new global::WPAIPlugin.Generator.PluginBuilder(), planner, NullLogger<PluginsController>.Instance);
+        new(
+            new global::WPAIPlugin.Generator.PluginBuilder(),
+            planner,
+            new FakeDockerPluginValidator(),
+            Options.Create(new ValidationOptions()),
+            NullLogger<PluginsController>.Instance);
 
     [Fact]
     public async Task Plan_ValidDescription_Returns200WithSpecAndUnsupportedRequirements()

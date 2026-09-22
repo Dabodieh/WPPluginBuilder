@@ -1,0 +1,66 @@
+# Disposable WordPress environment for validating generated plugins.
+# Not a production deployment. Every credential here is a throwaway test
+# credential scoped to this compose project only.
+#
+# Services:
+#   db        - temporary MariaDB database
+#   wordpress - temporary WordPress site (PHP+Apache, official image)
+#   wpcli     - official WP-CLI image, used to run `php -l`, install, and
+#               activate the plugin against the wordpress service
+#
+# wordpress and wpcli share the wp_data named volume so WP-CLI operates on
+# the same WordPress filesystem/config the wordpress service serves.
+#
+# No host directories are mounted. The only thing that reaches these
+# containers from the host is the generated plugin ZIP (and its extracted
+# contents, for php -l), copied in via `docker cp` by the validation script -
+# never a live host folder mount.
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: validate-root-pw
+      MARIADB_DATABASE: wordpress_validate
+      MARIADB_USER: wordpress_validate
+      MARIADB_PASSWORD: validate-wp-pw
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    tmpfs:
+      - /var/lib/mysql
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress_validate
+      WORDPRESS_DB_USER: wordpress_validate
+      WORDPRESS_DB_PASSWORD: validate-wp-pw
+    volumes:
+      - wp_data:/var/www/html
+
+  wpcli:
+    image: wordpress:cli
+    # UID 33 matches www-data in the wordpress:php8.2-apache (Debian-based)
+    # image, which owns wp-content on the shared volume. wordpress:cli is
+    # Alpine-based and its own www-data is UID 82, so without this the two
+    # containers disagree on file ownership and wp-content writes fail.
+    user: "33:33"
+    depends_on:
+      - wordpress
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress_validate
+      WORDPRESS_DB_USER: wordpress_validate
+      WORDPRESS_DB_PASSWORD: validate-wp-pw
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - wp_data:/var/www/html
+
+volumes:
+  wp_data:

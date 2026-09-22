@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using WPAIPlugin.Api.Validation;
 using WPAIPlugin.Generator;
 using WPAIPlugin.Generator.Models;
+using WPAIPlugin.Generator.Validation;
 using WPAIPlugin.Planning;
 
 namespace WPAIPlugin.Api.Controllers;
@@ -11,12 +14,21 @@ public sealed class PluginsController : ControllerBase
 {
     private readonly PluginBuilder _pluginBuilder;
     private readonly IPluginPlanner _pluginPlanner;
+    private readonly DockerPluginValidator _pluginValidator;
+    private readonly ValidationOptions _validationOptions;
     private readonly ILogger<PluginsController> _logger;
 
-    public PluginsController(PluginBuilder pluginBuilder, IPluginPlanner pluginPlanner, ILogger<PluginsController> logger)
+    public PluginsController(
+        PluginBuilder pluginBuilder,
+        IPluginPlanner pluginPlanner,
+        DockerPluginValidator pluginValidator,
+        IOptions<ValidationOptions> validationOptions,
+        ILogger<PluginsController> logger)
     {
         _pluginBuilder = pluginBuilder;
         _pluginPlanner = pluginPlanner;
+        _pluginValidator = pluginValidator;
+        _validationOptions = validationOptions.Value;
         _logger = logger;
     }
 
@@ -37,6 +49,65 @@ public sealed class PluginsController : ControllerBase
         {
             return BadRequest(new { errors = ex.ValidationErrors });
         }
+    }
+
+    /// <summary>
+    /// Builds a plugin exactly like <see cref="Build"/>, then runs the generated
+    /// ZIP through a disposable Docker WordPress environment (php -l, install,
+    /// activate) before returning it. The AI planning layer is never involved.
+    /// Returns the ZIP only if validation passes.
+    /// </summary>
+    [HttpPost("build-validated")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BuildValidatedErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> BuildValidated([FromBody] PluginSpec spec, CancellationToken cancellationToken)
+    {
+        if (!_validationOptions.Enabled)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Plugin validation is currently unavailable." });
+        }
+
+        // Same validator/build path as the normal endpoint - never bypassed.
+        var validation = PluginSpecValidator.Validate(spec);
+        if (!validation.IsValid)
+        {
+            return BadRequest(new { errors = validation.Errors });
+        }
+
+        PluginBuildResult buildResult;
+        try
+        {
+            buildResult = _pluginBuilder.Build(spec);
+        }
+        catch (PluginBuildException ex)
+        {
+            return BadRequest(new { errors = ex.ValidationErrors });
+        }
+
+        var validationResult = await _pluginValidator.ValidateAsync(buildResult.ZipBytes, spec.Slug, cancellationToken);
+
+        if (!validationResult.Success)
+        {
+            _logger.LogWarning("Plugin build-validated failed with reason {Reason}.", validationResult.FailureReason);
+
+            var errorResponse = new BuildValidatedErrorResponse
+            {
+                Error = validationResult.Error ?? "Plugin validation failed.",
+                Reason = validationResult.FailureReason ?? PluginValidationFailureReason.ValidationUnavailable,
+                PhpLintPassed = validationResult.PhpLintPassed,
+                WordPressInstalled = validationResult.WordPressInstalled,
+                PluginInstalled = validationResult.PluginInstalled,
+                PluginActivated = validationResult.PluginActivated,
+            };
+
+            return validationResult.FailureReason == PluginValidationFailureReason.ValidationUnavailable
+                ? StatusCode(StatusCodes.Status503ServiceUnavailable, errorResponse)
+                : UnprocessableEntity(errorResponse);
+        }
+
+        return File(buildResult.ZipBytes, "application/zip", buildResult.FileName);
     }
 
     /// <summary>
