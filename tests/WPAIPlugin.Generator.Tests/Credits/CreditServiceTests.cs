@@ -49,6 +49,58 @@ public class CreditServiceTests
         Assert.True(barrier.Conflicts >= 1);
     }
 
+    [Fact]
+    public async Task OverlappingAdjustments_ApplyExactlyOnce()
+    {
+        var barrier = new OverlapInterceptor();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).ReplaceService<IDatabase, CreditConcurrencyDatabase>().AddInterceptors(barrier).Options;
+        await using (var seed = new AppDbContext(options))
+        {
+            await new CreditService(seed).GrantSignupCreditsAsync("user", 100);
+        }
+        barrier.Enabled = true;
+        await using var first = new AppDbContext(options);
+        await using var second = new AppDbContext(options);
+        var results = await Task.WhenAll(
+            new CreditService(first).AdjustCreditsAsync("user", 10, Guid.NewGuid()),
+            new CreditService(second).AdjustCreditsAsync("user", 10, Guid.NewGuid()));
+
+        Assert.All(results, r => Assert.True(r.Success));
+        await using var check = new AppDbContext(options);
+        var account = await check.CreditAccounts.SingleAsync();
+        Assert.Equal(120, account.Balance);
+        Assert.Equal(2, await check.CreditTransactions.CountAsync(t => t.Type == CreditTransactionType.AdminAdjustment));
+        Assert.True(barrier.Arrivals >= 2);
+        Assert.True(barrier.Conflicts >= 1);
+    }
+
+    [Fact]
+    public async Task Adjustment_SameIdempotencyKey_AppliesExactlyOnceEvenWhenOverlapping()
+    {
+        var barrier = new OverlapInterceptor();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).ReplaceService<IDatabase, CreditConcurrencyDatabase>().AddInterceptors(barrier).Options;
+        await using (var seed = new AppDbContext(options))
+        {
+            await new CreditService(seed).GrantSignupCreditsAsync("user", 100);
+        }
+        barrier.Enabled = true;
+        var key = Guid.NewGuid();
+        await using var first = new AppDbContext(options);
+        await using var second = new AppDbContext(options);
+        var results = await Task.WhenAll(
+            new CreditService(first).AdjustCreditsAsync("user", 10, key),
+            new CreditService(second).AdjustCreditsAsync("user", 10, key));
+
+        Assert.All(results, r => Assert.True(r.Success));
+        Assert.Single(results.Where(r => r.AlreadyApplied));
+        await using var check = new AppDbContext(options);
+        var account = await check.CreditAccounts.SingleAsync();
+        Assert.Equal(110, account.Balance);
+        Assert.Equal(1, await check.CreditTransactions.CountAsync(t => t.Type == CreditTransactionType.AdminAdjustment));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]

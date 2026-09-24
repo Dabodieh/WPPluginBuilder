@@ -10,9 +10,13 @@ obj/
 # Secrets / local overrides
 .env
 .env.*
+!.env.example
 appsettings.Local.json
 appsettings.*.local.json
 secrets.json
+
+# Local production-compose override (copy docker/docker-compose.prod.example.yml)
+docker/docker-compose.prod.yml
 
 # Generated plugin ZIPs
 *.zip

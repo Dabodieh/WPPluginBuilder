@@ -3,13 +3,17 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WPAIPlugin.Api.Credits;
+using WPAIPlugin.Api.Entitlements;
 
 namespace WPAIPlugin.Api.Controllers;
 
 /// <summary>
-/// Authenticated credit balance endpoint (Milestone 12). Never returns
-/// UserId, transaction IDs, internal references, or provider information -
-/// only the current user's own balance and the server-configured build costs.
+/// Authenticated credit balance + free-build entitlement endpoint (Milestone
+/// 12; freeBuildsRemaining added in the Promotions + Free Builds milestone -
+/// a distinct entitlement from credits, never merged into the balance
+/// figure). Never returns UserId, transaction IDs, internal references, or
+/// provider information - only the current user's own balance/entitlement
+/// and the server-configured build costs.
 /// </summary>
 [ApiController]
 [Route("api/credits")]
@@ -18,12 +22,16 @@ public sealed class CreditsController : ControllerBase
 {
     private readonly CreditService _creditService;
     private readonly CreditOptions _creditOptions;
+    private readonly BuildEntitlementService _entitlementService;
     private readonly UserManager<IdentityUser> _userManager;
 
-    public CreditsController(CreditService creditService, IOptions<CreditOptions> creditOptions, UserManager<IdentityUser> userManager)
+    public CreditsController(
+        CreditService creditService, IOptions<CreditOptions> creditOptions,
+        BuildEntitlementService entitlementService, UserManager<IdentityUser> userManager)
     {
         _creditService = creditService;
         _creditOptions = creditOptions.Value;
+        _entitlementService = entitlementService;
         _userManager = userManager;
     }
 
@@ -37,10 +45,12 @@ public sealed class CreditsController : ControllerBase
         }
 
         var balance = await _creditService.GetBalanceAsync(userId, cancellationToken);
+        var freeBuildsRemaining = await _entitlementService.GetRemainingAsync(userId, cancellationToken);
 
         return Ok(new
         {
             balance,
+            freeBuildsRemaining,
             standardBuildCost = _creditOptions.StandardBuildCost,
             validatedBuildCost = _creditOptions.ValidatedBuildCost,
         });

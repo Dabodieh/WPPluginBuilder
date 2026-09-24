@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Admin — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
+<link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+<header class="app-header"><nav id="appNav" data-active="admin" aria-label="Main navigation"></nav></header>
+
+<main class="container page" id="admin" hidden>
+<h1>Admin</h1>
+<p class="page-lead">Operational visibility and management for ModuleMint.</p>
+
+<div class="admin-tabs" role="tablist" aria-label="Admin sections">
+  <button type="button" class="admin-tab" data-tab="overview" aria-selected="true">Overview</button>
+  <button type="button" class="admin-tab" data-tab="users" aria-selected="false">Users</button>
+  <button type="button" class="admin-tab" data-tab="credits" aria-selected="false">Credits</button>
+  <button type="button" class="admin-tab" data-tab="plugins" aria-selected="false">Plugins / Builds</button>
+  <button type="button" class="admin-tab" data-tab="ai-usage" aria-selected="false">AI Usage</button>
+  <button type="button" class="admin-tab" data-tab="revenue" aria-selected="false">Revenue</button>
+  <button type="button" class="admin-tab" data-tab="promotions" aria-selected="false">Promotions</button>
+  <button type="button" class="admin-tab" data-tab="audit" aria-selected="false">Audit Log</button>
+  <button type="button" class="admin-tab" data-tab="system" aria-selected="false">System</button>
+</div>
+
+<section id="tab-overview" class="admin-panel-section">
+  <div class="stat-grid admin-stat-grid" id="overviewStats"><p role="status">Loading&hellip;</p></div>
+</section>
+
+<section id="tab-users" class="admin-panel-section" hidden>
+  <section class="panel">
+    <h2 class="panel-title">Users</h2>
+    <div class="admin-search">
+      <label for="userSearch">Search by email</label>
+      <input type="text" id="userSearch" placeholder="user@example.com" />
+    </div>
+    <div id="usersTableWrap"><p role="status">Loading&hellip;</p></div>
+  </section>
+  <section class="panel" id="userDetailPanel" hidden>
+    <button type="button" class="button-secondary button-small" id="userDetailBack">&larr; Back to users</button>
+    <div id="userDetailBody"></div>
+  </section>
+</section>
+
+<section id="tab-credits" class="admin-panel-section" hidden>
+  <div class="stat-grid admin-stat-grid" id="creditStats"><p role="status">Loading&hellip;</p></div>
+</section>
+
+<section id="tab-plugins" class="admin-panel-section" hidden>
+  <section class="panel">
+    <h2 class="panel-title">Plugins / Builds</h2>
+    <div id="pluginsTableWrap"><p role="status">Loading&hellip;</p></div>
+  </section>
+</section>
+
+<section id="tab-ai-usage" class="admin-panel-section" hidden>
+  <div class="stat-grid admin-stat-grid" id="aiUsageStats"><p role="status">Loading&hellip;</p></div>
+  <section class="panel">
+    <h2 class="panel-title">By provider</h2>
+    <div id="aiByProvider"></div>
+  </section>
+  <section class="panel">
+    <h2 class="panel-title">By model</h2>
+    <div id="aiByModel"></div>
+  </section>
+  <section class="panel">
+    <h2 class="panel-title">Recent requests</h2>
+    <div id="aiRecent"></div>
+  </section>
+</section>
+
+<section id="tab-revenue" class="admin-panel-section" hidden>
+  <div class="admin-date-filters" role="group" aria-label="Date range">
+    <button type="button" class="button-secondary button-small admin-date-filter" data-range="today">Today</button>
+    <button type="button" class="button-secondary button-small admin-date-filter" data-range="7days">7 days</button>
+    <button type="button" class="button-secondary button-small admin-date-filter" data-range="30days">30 days</button>
+    <button type="button" class="button-secondary button-small admin-date-filter" data-range="month">This month</button>
+    <button type="button" class="button-secondary button-small admin-date-filter" data-range="all" aria-current="true">All time</button>
+  </div>
+  <div class="stat-grid admin-stat-grid" id="revenueStats"><p role="status">Loading&hellip;</p></div>
+  <section class="panel">
+    <h2 class="panel-title">Revenue by day</h2>
+    <div id="revenueByPeriod"></div>
+  </section>
+  <section class="panel">
+    <h2 class="panel-title">Recent purchases</h2>
+    <div id="recentPurchases"></div>
+  </section>
+  <section class="panel">
+    <h2 class="panel-title">Approximate contribution estimate</h2>
+    <p class="admin-note">Revenue vs. estimated AI spend only - excludes Stripe fees, hosting, and all other business costs. Never profit.</p>
+    <div class="stat-grid admin-stat-grid" id="contributionStats"><p role="status">Loading&hellip;</p></div>
+  </section>
+  <section class="panel">
+    <h2 class="panel-title">Operational analytics</h2>
+    <div class="stat-grid admin-stat-grid" id="operationalStats"><p role="status">Loading&hellip;</p></div>
+  </section>
+</section>
+
+<section id="tab-promotions" class="admin-panel-section" hidden>
+  <section class="panel">
+    <h2 class="panel-title">Promotions</h2>
+    <button type="button" class="button-secondary button-small" id="newPromotionBtn">New promotion</button>
+    <div id="promotionsTableWrap"><p role="status">Loading&hellip;</p></div>
+  </section>
+  <section class="panel" id="promotionFormPanel" hidden>
+    <h2 class="panel-title" id="promotionFormTitle">New promotion</h2>
+    <div id="promotionFormWrap"></div>
+  </section>
+  <section class="panel" id="promotionDetailPanel" hidden>
+    <button type="button" class="button-secondary button-small" id="promotionDetailBack">&larr; Back to promotions</button>
+    <div id="promotionDetailBody"></div>
+  </section>
+</section>
+
+<section id="tab-audit" class="admin-panel-section" hidden>
+  <section class="panel">
+    <h2 class="panel-title">Audit Log</h2>
+    <div class="admin-search">
+      <label for="auditTargetSearch">Filter by target user ID</label>
+      <input type="text" id="auditTargetSearch" placeholder="user id" />
+    </div>
+    <div id="auditTableWrap"><p role="status">Loading&hellip;</p></div>
+  </section>
+</section>
+
+<section id="tab-system" class="admin-panel-section" hidden>
+  <section class="panel">
+    <h2 class="panel-title">System</h2>
+    <div id="systemStatus"><p role="status">Loading&hellip;</p></div>
+  </section>
+</section>
+
+</main>
+<script src="api.js"></script>
+<script src="nav.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

@@ -24,7 +24,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     {
         var client = NewClient(factory);
         var email = $"user-{Guid.NewGuid()}@example.com";
-        var response = await client.PostAsJsonAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
+        var response = await client.PostJsonWithCsrfAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
         response.EnsureSuccessStatusCode();
         return client;
     }
@@ -48,7 +48,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     {
         var client = await RegisterAndLoginAsync(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/plugins/plan", new { description = "Create a staff directory" });
+        var response = await client.PostJsonWithCsrfAsync("/api/plugins/plan", new { description = "Create a staff directory" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -58,7 +58,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     {
         var client = NewClient(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var response = await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -68,7 +68,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     {
         var client = await RegisterAndLoginAsync(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var response = await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -83,7 +83,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     {
         var client = await RegisterAndLoginAsync(_factory);
 
-        var buildResponse = await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var buildResponse = await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
         var build = await buildResponse.Content.ReadFromJsonAsync<JsonElement>();
         var downloadUrl = build.GetProperty("downloadUrl").GetString();
 
@@ -99,7 +99,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     public async Task Build_ThenList_ProjectAppearsInMyPlugins()
     {
         var client = await RegisterAndLoginAsync(_factory);
-        await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
 
         var response = await client.GetAsync("/api/projects");
         var projects = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -112,7 +112,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     public async Task SecondUser_CannotSeeFirstUsersProject()
     {
         var userA = await RegisterAndLoginAsync(_factory);
-        await userA.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        await userA.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
 
         var userB = await RegisterAndLoginAsync(_factory);
         var response = await userB.GetAsync("/api/projects");
@@ -125,7 +125,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     public async Task SecondUser_CannotOpenFirstUsersProjectById()
     {
         var userA = await RegisterAndLoginAsync(_factory);
-        var buildResponse = await userA.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var buildResponse = await userA.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
         var build = await buildResponse.Content.ReadFromJsonAsync<JsonElement>();
         var projectId = build.GetProperty("projectId").GetString();
 
@@ -139,7 +139,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     public async Task SecondUser_CannotDownloadFirstUsersZip_EvenWithExactGuessedIds()
     {
         var userA = await RegisterAndLoginAsync(_factory);
-        var buildResponse = await userA.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var buildResponse = await userA.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
         var build = await buildResponse.Content.ReadFromJsonAsync<JsonElement>();
         var downloadUrl = build.GetProperty("downloadUrl").GetString();
 
@@ -164,7 +164,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     {
         var client = await RegisterAndLoginAsync(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var response = await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.DoesNotContain("ArtifactKey", body, StringComparison.OrdinalIgnoreCase);
@@ -177,7 +177,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
     public async Task ProjectDetailResponse_NeverContainsArtifactKeyOrUserId()
     {
         var client = await RegisterAndLoginAsync(_factory);
-        var buildResponse = await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload());
+        var buildResponse = await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload());
         var build = await buildResponse.Content.ReadFromJsonAsync<JsonElement>();
         var projectId = build.GetProperty("projectId").GetString();
 
@@ -199,7 +199,7 @@ public class ProjectsControllerTests : IClassFixture<ProjectsTestFactory>
 
         var client = await RegisterAndLoginAsync(_factory);
 
-        var buildResponse = await client.PostAsJsonAsync("/api/projects/build", ValidSpecPayload(validated: true));
+        var buildResponse = await client.PostJsonWithCsrfAsync("/api/projects/build", ValidSpecPayload(validated: true));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, buildResponse.StatusCode);
 
         var listResponse = await client.GetAsync("/api/projects");

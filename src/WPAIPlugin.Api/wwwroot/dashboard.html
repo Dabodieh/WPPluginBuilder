@@ -3,69 +3,57 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dashboard - WPAI Plugin Builder</title>
-<link rel="stylesheet" href="auth.css" />
+<meta name="color-scheme" content="dark" />
+<title>Dashboard — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
 </head>
 <body>
-<main class="wide" hidden id="dashboard">
-  <div class="top-nav">
-    <h1>WPAI Plugin Builder</h1>
-    <span class="who">Signed in as: <span id="userEmail"></span> &middot; <a class="link" href="#" id="logoutLink">Log out</a></span>
-  </div>
-  <p class="sub" id="welcome"></p>
+<header class="app-header"><nav id="appNav" data-active="dashboard" aria-label="Main navigation"></nav></header>
 
-  <div class="tile-grid">
-    <section class="card">
-      <h2><a class="link" href="builder.html">Plugin Builder</a></h2>
-      <p>Create a new WordPress plugin.</p>
-    </section>
-    <section class="card">
-      <h2><a class="link" href="myplugins.html">My Plugins</a></h2>
-      <p>View your saved plugin builds.</p>
-    </section>
-    <section class="card">
-      <h2>Credits</h2>
-      <p id="creditBalance" role="status">Loading credits…</p>
-    </section>
-    <section class="card">
-      <h2>Billing</h2>
-      <p>Billing coming soon.</p>
-    </section>
+<main class="app-shell page" id="dashboard" hidden>
+<section class="page-header">
+  <h1>Dashboard</h1>
+  <p class="page-lead">Build WordPress plugins from a structured AI-generated plan.</p>
+</section>
+
+<div id="verificationNotice" class="card card-featured verify-banner" role="status" hidden>
+  <div>
+    <p class="verify-banner-label">VERIFY YOUR EMAIL</p>
+    <p class="verify-banner-text">Verify your email to start creating WordPress plugins.</p>
   </div>
+  <div class="verify-banner-actions">
+    <button type="button" id="resendVerificationBtn" class="btn btn-primary">Resend verification email</button>
+    <p id="resendVerificationMessage" role="status" hidden></p>
+  </div>
+</div>
+
+<a class="btn btn-primary new-plugin-action" href="builder.html">New Plugin<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg></a>
+
+<div class="stat-grid">
+  <section class="card elev-sm content-card">
+    <h2 class="card-kicker">Credits</h2>
+    <p id="creditBalance" role="status" class="stat-value">Loading&hellip;</p>
+  </section>
+  <section class="card elev-sm content-card">
+    <h2 class="card-kicker">Free builds</h2>
+    <p id="freeBuildsBalance" role="status" class="stat-value">Loading&hellip;</p>
+  </section>
+</div>
+
+<section class="card elev-sm content-card">
+  <h2 class="card-kicker">Your plugins</h2>
+  <p id="projectCount" role="status" class="stat-value-sm">Loading&hellip;</p>
+  <a class="btn btn-secondary card-action" href="myplugins.html">View My Plugins</a>
+</section>
+
+<section class="card elev-sm content-card">
+  <h2 class="card-kicker">How it works</h2>
+  <p>Plan &rarr; Build &rarr; Validate &rarr; Download</p>
+</section>
 </main>
-<script>
-(async () => {
-  try {
-    const response = await fetch("/api/account/me");
-    if (!response.ok) {
-      window.location.href = "login.html";
-      return;
-    }
-    const body = await response.json();
-    document.getElementById("userEmail").textContent = body.email || "";
-    document.getElementById("welcome").textContent = "Welcome, " + (body.email || "") + ".";
-    document.getElementById("dashboard").hidden = false;
-    try {
-      const creditsResponse = await fetch("/api/credits");
-      if (!creditsResponse.ok) throw new Error("Credits unavailable");
-      const credits = await creditsResponse.json();
-      document.getElementById("creditBalance").textContent = `${credits.balance} credits remaining`;
-    } catch {
-      document.getElementById("creditBalance").textContent = "Credits unavailable. Please refresh.";
-    }
-  } catch (err) {
-    window.location.href = "login.html";
-  }
-})();
-
-document.getElementById("logoutLink").addEventListener("click", async (e) => {
-  e.preventDefault();
-  try {
-    await fetch("/api/account/logout", { method: "POST" });
-  } finally {
-    window.location.href = "login.html";
-  }
-});
-</script>
+<script src="api.js"></script>
+<script src="nav.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>

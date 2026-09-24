@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-bcf3e915-dd33-4386-a671-8ee1303f77a7/styles.css">
+<script src="_ds/nocturne-bcf3e915-dd33-4386-a671-8ee1303f77a7/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:
+  radial-gradient(1200px 720px at 82% -160px, color-mix(in srgb, var(--color-accent-900) 55%, transparent), transparent 60%),
+  var(--color-bg);}
+a{color:var(--color-accent)}
+a:hover{color:var(--color-accent-300)}
+.btn,.card,.tag,.input{transition:background 0.15s ease,box-shadow 0.15s ease,border-color 0.15s ease,transform 0.15s ease}
+.card:hover{transform:translateY(-2px)}
+</style>
+</helmet>
+
+<nav class="nav" style="max-width:1200px;margin:0 auto;padding:16px clamp(20px,5vw,32px)">
+  <a class="nav-brand" href="ModuleMint - Home.dc.html" style="text-decoration:none;color:inherit">ModuleMint</a>
+  <a href="ModuleMint - Dashboard.dc.html">Dashboard</a>
+  <a href="ModuleMint - Builder.dc.html">Builder</a>
+  <a href="ModuleMint - My Plugins.dc.html">My Plugins</a>
+  <a href="ModuleMint - Billing.dc.html" aria-current="page">Billing</a>
+  <span class="tag tag-outline">5 credits</span>
+  <button type="button" class="btn btn-ghost">Account ▾</button>
+</nav>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,5vw,32px) 64px">
+  <section style="padding:40px 0 24px">
+    <h1 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:30px;margin:0 0 8px">Billing</h1>
+    <p style="font-size:15px;color:color-mix(in srgb, var(--color-text) 78%, transparent);margin:0">Buy credits and view your purchase history.</p>
+  </section>
+
+  <div class="card elev-sm" style="padding:20px;margin-bottom:24px;max-width:320px">
+    <div class="card-kicker">Current credits</div>
+    <div style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:26px">5 credits</div>
+  </div>
+
+  <div style="margin-bottom:32px">
+    <h2 style="font-size:18px;margin:0 0 12px">Promo code</h2>
+    <div style="display:flex;gap:12px;max-width:420px">
+      <input class="input" type="text" placeholder="WELCOME25">
+      <button type="button" class="btn btn-secondary">Apply</button>
+    </div>
+  </div>
+
+  <h2 style="font-size:18px;margin:0 0 16px">Buy credits</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:40px">
+    <div class="card elev-sm" style="padding:20px;gap:14px">
+      <div>
+        <div class="card-kicker">Starter</div>
+        <div style="font-size:14px;color:color-mix(in srgb, var(--color-text) 75%, transparent)">25 credits</div>
+      </div>
+      <div style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:24px">£4.99</div>
+      <button type="button" class="btn btn-secondary btn-block">Buy now</button>
+    </div>
+    <div class="card elev-md" style="padding:20px;gap:14px;box-shadow:inset 0 0 0 1px var(--color-accent)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="card-kicker">Builder</div>
+          <div style="font-size:14px;color:color-mix(in srgb, var(--color-text) 75%, transparent)">75 credits</div>
+        </div>
+        <span class="tag tag-accent">Most popular</span>
+      </div>
+      <div style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:24px">£9.99</div>
+      <button type="button" class="btn btn-primary btn-block">Buy now</button>
+    </div>
+    <div class="card elev-sm" style="padding:20px;gap:14px">
+      <div>
+        <div class="card-kicker">Pro</div>
+        <div style="font-size:14px;color:color-mix(in srgb, var(--color-text) 75%, transparent)">200 credits</div>
+      </div>
+      <div style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:24px">£19.99</div>
+      <button type="button" class="btn btn-secondary btn-block">Buy now</button>
+    </div>
+  </div>
+
+  <div>
+    <h2 style="font-size:18px;margin:0 0 12px">Purchase history</h2>
+    <div class="card" style="padding:24px;text-align:center;gap:4px">
+      <p style="margin:0;font-size:14px;color:color-mix(in srgb, var(--color-text) 70%, transparent)">No purchases yet.</p>
+      <p style="margin:0;font-size:13px;color:color-mix(in srgb, var(--color-text) 52%, transparent)">Buy a credit pack above and it'll show up here with the date and plugin it went toward.</p>
+    </div>
+  </div>
+
+  <footer style="border-top:1px solid var(--color-divider);margin-top:40px;padding-top:20px;font-size:13px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">
+    <a href="#">Terms of Service</a> · <a href="#">Refund Policy</a>
+  </footer>
+</div>
+
+</x-dc>
+</body>
+</html>

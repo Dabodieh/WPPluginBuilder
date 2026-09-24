@@ -3,41 +3,180 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WPAI Plugin Builder</title>
-<link rel="stylesheet" href="auth.css" />
+<meta name="description" content="Describe a WordPress plugin, review an AI-created plan, and build a ready-to-install ZIP with ModuleMint." />
+<meta name="color-scheme" content="dark" />
+<title>ModuleMint — Build WordPress plugins with AI</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
+<link rel="stylesheet" href="site.css" />
+<script src="index.js" defer></script>
 </head>
-<body>
-<main>
-  <h1>WPAIPlugin</h1>
+<body class="home">
+<a class="skip-link" href="#main">Skip to content</a>
+<header>
+<nav class="app-shell nav home-nav" aria-label="Main navigation">
+  <a class="nav-brand" href="/">ModuleMint</a>
+  <a href="#how-it-works">How it works</a>
+  <a href="#features">Features</a>
+  <a href="login.html" data-account-link>Log in</a>
+  <a class="btn btn-primary" href="register.html" data-build-link>Start Building<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+</nav>
+</header>
 
-  <section class="card" id="loggedOut" hidden>
-    <p class="sub">AI-assisted WordPress plugin building.</p>
-    <div class="actions">
-      <a href="login.html"><button type="button">Log in</button></a>
-      <a href="register.html"><button type="button" class="secondary">Create account</button></a>
+<main id="main">
+<div class="app-shell">
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <span class="kicker hero-kicker">From an idea to a WordPress plugin</span>
+      <h1 id="hero-title">Build WordPress plugins with AI</h1>
+      <p class="hero-lead">Describe what you need. ModuleMint plans it, builds it, and hands you a ready-to-install ZIP — with optional WordPress validation before you download.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="register.html" data-build-link>Start Building<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+        <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
+      </div>
+    </div>
+
+    <figure class="card elev-md preview-card" aria-label="Example: an idea turned into a plugin plan">
+      <div class="preview-top">
+        <span class="card-kicker">Idea → plugin</span>
+        <span class="tag tag-outline">Example</span>
+      </div>
+      <div>
+        <p class="preview-label">Your description</p>
+        <div class="input preview-description">Create a staff directory with name, email, job title and a shortcode.</div>
+      </div>
+      <div class="preview-arrow" aria-hidden="true">↓</div>
+      <div class="plan-panel">
+        <div class="plan-heading">
+          <div class="plan-swatch" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" focusable="false"><path d="M40,64H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm176,56H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,72H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg></div>
+          <div>
+            <p class="plan-label">Plugin plan</p>
+            <p class="plan-title">Staff Directory</p>
+          </div>
+        </div>
+        <ul class="plan-checks">
+          <li>✓ Custom Post Type</li>
+          <li>✓ Custom Fields</li>
+          <li>✓ Shortcode</li>
+        </ul>
+        <div class="plan-footer">
+          <span class="plan-status"><span class="status-dot" aria-hidden="true"></span>Ready to build</span>
+          <span class="file-type">.zip</span>
+        </div>
+      </div>
+    </figure>
+  </section>
+</div>
+
+<section class="offer-band" aria-labelledby="offer-title" data-offer hidden>
+  <div class="app-shell offer-inner">
+    <div>
+      <h2 id="offer-title">New here? Your first <span data-free-builds></span> are on us.</h2>
+      <p class="offer-copy">No credit card required. Build, validate, and download — see the whole flow before you ever pay for a credit.</p>
+      <p class="offer-fine" data-starting-pack-line hidden>Then from <span data-starting-price></span> for <span data-starting-credits></span> credits — pay only if you keep building.</p>
+    </div>
+    <a class="btn btn-on-section" href="register.html" data-build-link>Claim your free builds</a>
+  </div>
+</section>
+
+<div class="app-shell">
+  <section class="home-section how-section" id="how-it-works" aria-labelledby="how-title">
+    <span class="kicker">A straightforward workflow</span>
+    <h2 id="how-title">How it works</h2>
+    <p class="section-lead">Know what you’re building before you build it.</p>
+    <div class="steps">
+      <article>
+        <div class="step-number" aria-hidden="true">01</div>
+        <h3>Describe it</h3>
+        <p>Tell ModuleMint what you want your WordPress plugin to do.</p>
+      </article>
+      <article>
+        <div class="step-number" aria-hidden="true">02</div>
+        <h3>Review it</h3>
+        <p>AI creates a structured plan showing exactly what will be generated.</p>
+      </article>
+      <article>
+        <div class="step-number" aria-hidden="true">03</div>
+        <h3>Build &amp; download</h3>
+        <p>Generate your plugin, optionally validate it against WordPress, and download the ZIP.</p>
+      </article>
     </div>
   </section>
 
-  <section class="card" id="loggedIn" hidden>
-    <p class="sub">You're signed in.</p>
-    <div class="actions">
-      <a href="dashboard.html"><button type="button">Go to dashboard</button></a>
+  <section class="card elev-sm validation-card" aria-labelledby="validation-title">
+    <div>
+      <span class="kicker">A plan you can inspect</span>
+      <h2 id="validation-title">Built, not just generated</h2>
+      <p>AI helps plan your plugin. Its source code comes from deterministic templates using your approved specification.</p>
+      <p>Choose Build &amp; Validate to run PHP and WordPress checks before downloading.</p>
+    </div>
+    <ul class="check-list">
+      <li>✓ Structured PluginSpec validation</li>
+      <li><span>✓ PHP syntax validation</span><small>With Build &amp; Validate</small></li>
+      <li><span>✓ WordPress installation test</span><small>With Build &amp; Validate</small></li>
+      <li><span>✓ WordPress activation test</span><small>With Build &amp; Validate</small></li>
+      <li>✓ Saved plugin versions</li>
+      <li>✓ Secure ZIP download</li>
+    </ul>
+  </section>
+
+  <section class="home-section features-section" id="features" aria-labelledby="features-title">
+    <span class="kicker">What can you build?</span>
+    <h2 id="features-title">Practical building blocks for your WordPress site</h2>
+    <div class="feature-grid">
+      <article class="card"><div class="card-kicker">Shortcodes</div><h3 class="card-title">Reusable content</h3><p class="card-body">Add reusable content to your pages and posts with a shortcode.</p></article>
+      <article class="card"><div class="card-kicker">Custom Post Types</div><h3 class="card-title">Own content type</h3><p class="card-body">Give content such as staff profiles its own place in WordPress.</p></article>
+      <article class="card"><div class="card-kicker">Custom Fields</div><h3 class="card-title">Structured data</h3><p class="card-body">Store the extra details your content needs, from names to job titles.</p></article>
+      <article class="card"><div class="card-kicker">Settings Pages</div><h3 class="card-title">Configurable</h3><p class="card-body">Manage your plugin’s options from a dedicated settings page.</p></article>
+      <article class="card"><div class="card-kicker">Scheduled Tasks</div><h3 class="card-title">Automated</h3><p class="card-body">Set up recurring tasks using WordPress scheduling.</p></article>
     </div>
   </section>
+
+  <section class="projects-section" aria-labelledby="projects-title">
+    <div>
+      <h2 id="projects-title">Your plugins stay with you</h2>
+      <p>Every successful build is saved to My Plugins, where saved versions remain available to download.</p>
+    </div>
+    <figure class="card elev-md saved-card" aria-label="Example: a saved plugin in My Plugins">
+      <div class="saved-head">
+        <span>My Plugins</span>
+        <span class="tag tag-outline">Example</span>
+      </div>
+      <div class="saved-row">
+        <div class="plugin-swatch" aria-hidden="true">W</div>
+        <div class="saved-info">
+          <p class="saved-name">Staff Directory</p>
+          <p class="saved-meta">v1.0.0 · Revision 1</p>
+        </div>
+        <span class="tag tag-accent">✓ Validated</span>
+      </div>
+      <div class="saved-foot">
+        <span>WordPress plugin · ZIP</span>
+        <span class="btn btn-secondary btn-download" aria-hidden="true">Download<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></span>
+      </div>
+    </figure>
+  </section>
+
+  <hr class="hr" />
+
+  <section class="closing" aria-labelledby="cta-title">
+    <h2 id="cta-title">Ready to build your first plugin?</h2>
+    <p>Describe it. Review it. Download it.</p>
+    <div class="closing-actions">
+      <a class="btn btn-primary" href="register.html" data-build-link>Start Building<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+      <span class="tag tag-accent" data-offer hidden><span>First <span data-free-builds></span> free</span></span>
+    </div>
+  </section>
+</div>
 </main>
-<script>
-(async () => {
-  try {
-    const response = await fetch("/api/account/me");
-    if (response.ok) {
-      document.getElementById("loggedIn").hidden = false;
-    } else {
-      document.getElementById("loggedOut").hidden = false;
-    }
-  } catch (err) {
-    document.getElementById("loggedOut").hidden = false;
-  }
-})();
-</script>
+
+<div class="app-shell">
+  <footer class="site-footer">
+    <p><a class="nav-brand footer-brand" href="/">ModuleMint</a>From your idea to your WordPress site.</p>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refunds.html">Refunds</a><a href="support.html">Support</a><a href="login.html" data-account-link>Log in</a>
+    </nav>
+  </footer>
+</div>
 </body>
 </html>

@@ -1,0 +1,29 @@
+/* Billing page layout on the Nocturne tokens/components from app.css. */
+.balance-card { max-width:320px; margin-bottom:24px; }
+.billing-section { margin-bottom:32px; }
+.promo-form { display:flex; gap:12px; max-width:420px; }
+.promo-status { margin-top:8px; }
+
+.pack-list {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;
+}
+.pack-card { padding:20px; gap:14px; }
+.pack-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.pack-credits { font-size:14px; color:color-mix(in srgb, var(--color-text) 75%, transparent); }
+.pack-price {
+  font-family:var(--font-heading); font-weight:var(--font-heading-weight);
+  font-size:24px; line-height:1.2;
+}
+.pack-price-original {
+  font-family:var(--font-body); font-weight:400; font-size:15px; text-decoration:line-through;
+  color:color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.pack-promotion { align-self:flex-start; }
+.pack-card .btn-block { margin-top:auto; }
+
+.history-empty { padding:24px; text-align:center; gap:4px; }
+.history-empty:hover { transform:none; }
+.history-empty p { font-size:14px; color:color-mix(in srgb, var(--color-text) 70%, transparent); }
+.history-empty .history-empty-sub { font-size:13px; color:color-mix(in srgb, var(--color-text) 52%, transparent); }
+.history-card { padding:12px 16px; }
+.history-card:hover { transform:none; }

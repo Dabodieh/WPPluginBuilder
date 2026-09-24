@@ -19,6 +19,11 @@ public sealed class ProjectBuildResponse
     public required int CreditsCharged { get; init; }
 
     public required int CreditBalance { get; init; }
+
+    /// <summary>True when this build consumed a free-build entitlement instead of (or alongside, for Build &amp; Validate) a credit charge.</summary>
+    public required bool FreeBuildUsed { get; init; }
+
+    public required int FreeBuildsRemaining { get; init; }
 }
 
 /// <summary>
@@ -32,6 +37,8 @@ public sealed class InsufficientCreditsResponse
     public required int Required { get; init; }
 
     public required int Balance { get; init; }
+
+    public required int FreeBuildsRemaining { get; init; }
 }
 
 /// <summary>

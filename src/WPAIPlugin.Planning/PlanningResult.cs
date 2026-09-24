@@ -30,4 +30,10 @@ public sealed class PlanningResult
     public CustomFieldsSpec? CustomFields { get; init; }
 
     public ScheduledTaskSpec? ScheduledTask { get; init; }
+
+    /// <summary>Token usage for this request, when the provider reported it. Null if unavailable.</summary>
+    public PlanningUsage? Usage { get; init; }
+
+    /// <summary>The exact model string the provider actually used to serve this request (server-resolved, never client-supplied).</summary>
+    public string? Model { get; init; }
 }

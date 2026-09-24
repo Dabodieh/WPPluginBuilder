@@ -79,6 +79,9 @@ public sealed class PluginPlanner : IPluginPlanner
         {
             Spec = spec,
             UnsupportedRequirements = result.UnsupportedRequirements,
+            Provider = planningProvider.Name,
+            Usage = result.Usage,
+            Model = result.Model,
         };
     }
 

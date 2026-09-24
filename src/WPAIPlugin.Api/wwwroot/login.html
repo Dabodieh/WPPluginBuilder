@@ -3,70 +3,41 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Log in - WPAI Plugin Builder</title>
-<link rel="stylesheet" href="auth.css" />
+<meta name="color-scheme" content="dark" />
+<title>Log in — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
 </head>
 <body>
-<main>
-  <h1>WPAI Plugin Builder</h1>
-  <p class="sub">Log in to your account.</p>
+<main class="container-narrow auth-page">
+<a class="wordmark auth-brand" href="/" aria-label="ModuleMint home"><span class="brand-mark" aria-hidden="true">M</span>ModuleMint</a>
 
-  <section class="card">
-    <form id="loginForm">
-      <label for="email">Email</label>
-      <input type="email" id="email" autocomplete="username" required />
+<h1>Welcome back</h1>
+<p class="page-lead">Log in to continue building and managing your WordPress plugins.</p>
 
-      <label for="password">Password</label>
-      <input type="password" id="password" autocomplete="current-password" required />
+<section class="panel auth-panel">
+<form id="loginForm" novalidate>
+  <div class="field">
+    <label for="email">Email</label>
+    <input type="email" id="email" autocomplete="username" required />
+  </div>
+  <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" autocomplete="current-password" required />
+    <p class="password-hint"><a href="forgot-password.html">Forgot password?</a></p>
+  </div>
 
-      <div class="actions">
-        <button type="submit" id="loginBtn">Log in</button>
-        <span id="loginLoading" hidden>Logging in&hellip;</span>
-      </div>
-    </form>
+  <button type="submit" id="loginBtn" class="button auth-submit">Log in</button>
+  <p id="loginLoading" class="auth-loading" hidden><span class="spinner" aria-hidden="true"></span> Logging in&hellip;</p>
+</form>
 
-    <div id="loginError" class="notice error" hidden></div>
+<div id="loginError" class="notice error" role="alert" hidden></div>
+</section>
 
-    <p class="sub" style="margin-top:16px">
-      No account yet? <a class="link" href="register.html">Create one</a>.
-    </p>
-  </section>
+<p class="auth-footer-note">Don't have an account? <a href="register.html">Create account</a></p>
+<p class="auth-back-link"><a href="/">&larr; Back to homepage</a></p>
 </main>
-<script>
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errorNode = document.getElementById("loginError");
-  errorNode.hidden = true;
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  document.getElementById("loginBtn").disabled = true;
-  document.getElementById("loginLoading").hidden = false;
-
-  try {
-    const response = await fetch("/api/account/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      errorNode.textContent = (body && body.error) || "Invalid email or password.";
-      errorNode.hidden = false;
-      return;
-    }
-
-    window.location.href = "dashboard.html";
-  } catch (err) {
-    errorNode.textContent = "Could not reach the server. Please try again.";
-    errorNode.hidden = false;
-  } finally {
-    document.getElementById("loginBtn").disabled = false;
-    document.getElementById("loginLoading").hidden = true;
-  }
-});
-</script>
+<script src="api.js"></script>
+<script src="login.js"></script>
 </body>
 </html>

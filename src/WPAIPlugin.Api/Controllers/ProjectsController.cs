@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -6,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using WPAIPlugin.Api.Credits;
 using WPAIPlugin.Api.Data;
+using WPAIPlugin.Api.Entitlements;
 using WPAIPlugin.Api.Storage;
 using WPAIPlugin.Api.Validation;
 using WPAIPlugin.Generator;
@@ -26,37 +29,46 @@ namespace WPAIPlugin.Api.Controllers;
 public sealed class ProjectsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly PartitionedRateLimiter<string> _validatedBuildLimiter;
     private readonly PluginBuilder _pluginBuilder;
     private readonly DockerPluginValidator _pluginValidator;
     private readonly ValidationOptions _validationOptions;
     private readonly PluginArtifactStore _artifactStore;
     private readonly CreditService _creditService;
     private readonly CreditOptions _creditOptions;
+    private readonly BuildEntitlementService _entitlementService;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ILogger<ProjectsController> _logger;
 
     public ProjectsController(
         AppDbContext db,
+        PartitionedRateLimiter<string> validatedBuildLimiter,
         PluginBuilder pluginBuilder,
         DockerPluginValidator pluginValidator,
         IOptions<ValidationOptions> validationOptions,
         PluginArtifactStore artifactStore,
         CreditService creditService,
         IOptions<CreditOptions> creditOptions,
+        BuildEntitlementService entitlementService,
         UserManager<IdentityUser> userManager,
         ILogger<ProjectsController> logger)
     {
         _db = db;
+        _validatedBuildLimiter = validatedBuildLimiter;
         _pluginBuilder = pluginBuilder;
         _pluginValidator = pluginValidator;
         _validationOptions = validationOptions.Value;
         _artifactStore = artifactStore;
         _creditService = creditService;
         _creditOptions = creditOptions.Value;
+        _entitlementService = entitlementService;
         _userManager = userManager;
         _logger = logger;
     }
 
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("build")]
+    [RequestSizeLimit(1024 * 1024)]
     [HttpPost("build")]
     [ProducesResponseType(typeof(ProjectBuildResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -71,6 +83,15 @@ public sealed class ProjectsController : ControllerBase
             return Unauthorized();
         }
 
+        // Verification gate first, before any rate-limit lease, credit
+        // charge, or free-build consumption - an unverified account must
+        // never consume any generation resource.
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null || !user.EmailConfirmed)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Please verify your email address before creating WordPress plugins." });
+        }
+
         var spec = request.Spec;
         var validation = PluginSpecValidator.Validate(spec);
         if (!validation.IsValid)
@@ -83,22 +104,64 @@ public sealed class ProjectsController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Plugin validation is currently unavailable." });
         }
 
-        // Cost is always computed server-side from configuration - the
-        // request body's "validated" flag only selects which server-known
-        // cost applies; the browser never supplies a cost value itself.
-        var cost = request.Validated ? _creditOptions.ValidatedBuildCost : _creditOptions.StandardBuildCost;
-        var chargeType = request.Validated ? CreditTransactionType.ValidatedBuild : CreditTransactionType.PluginBuild;
+        if (request.Validated)
+        {
+            using var lease = _validatedBuildLimiter.AttemptAcquire(userId);
+            if (!lease.IsAcquired)
+            {
+                Response.Headers.RetryAfter = "60";
+                return StatusCode(429, new { error = "Too many validated builds. Please try again later." });
+            }
+        }
+
+        // Free builds and credits are distinct, server-decided entitlements -
+        // the browser never chooses or influences which one covers a build.
+        // One buildReference correlates the credit charge, the free-build
+        // consumption, and both of their refunds for this single build
+        // operation. A standard build fully covered by a free build costs 0
+        // credits; a validated build covered by a free build still costs the
+        // configured validation credit (1) - only the build itself is free.
         var buildReference = $"build:{Guid.NewGuid()}";
+        var usedFreeBuild = await _entitlementService.TryConsumeAsync(userId, buildReference, CancellationToken.None);
+        var cost = usedFreeBuild
+            ? (request.Validated ? 1 : 0)
+            : (request.Validated ? _creditOptions.ValidatedBuildCost : _creditOptions.StandardBuildCost);
+        var chargeType = request.Validated ? CreditTransactionType.ValidatedBuild : CreditTransactionType.PluginBuild;
 
         cancellationToken.ThrowIfCancellationRequested();
         // Once charging starts, finish that short database unit independently
         // of a disconnected client so its outcome is known before compensation.
-        var (charged, balance) = await _creditService.TryChargeAsync(userId, cost, chargeType, buildReference, CancellationToken.None);
+        bool charged;
+        int balance;
+        if (cost > 0)
+        {
+            (charged, balance) = await _creditService.TryChargeAsync(userId, cost, chargeType, buildReference, CancellationToken.None);
+        }
+        else
+        {
+            charged = true;
+            balance = await _creditService.GetBalanceAsync(userId, CancellationToken.None);
+        }
         if (!charged)
+        {
+            if (usedFreeBuild)
+            {
+                await _entitlementService.RefundAsync(userId, buildReference, CancellationToken.None);
+            }
             return StatusCode(402, new InsufficientCreditsResponse
             {
                 Error = "Insufficient credits.", Required = cost, Balance = balance,
+                FreeBuildsRemaining = await _entitlementService.GetRemainingAsync(userId, CancellationToken.None),
             });
+        }
+
+        // Only says a resource was returned if it was actually consumed -
+        // never claims a free build was returned when none was used, or vice
+        // versa for credits (cost is always > 0 here when no free build
+        // covered the build, since both configured build costs are positive).
+        string ResourcesReturnedMessage() => usedFreeBuild
+            ? (cost > 0 ? "Build failed. Your free build and credits were returned." : "Build failed. Your free build was returned.")
+            : "Build failed. Your credits were returned.";
 
         var completed = false;
         string? artifactKey = null;
@@ -113,7 +176,7 @@ public sealed class ProjectsController : ControllerBase
                 {
                     var error = new BuildValidatedErrorResponse
                     {
-                        Error = "Build failed. Your credits were returned.",
+                        Error = ResourcesReturnedMessage(),
                         Reason = result.FailureReason ?? PluginValidationFailureReason.ValidationUnavailable,
                         PhpLintPassed = result.PhpLintPassed,
                         WordPressInstalled = result.WordPressInstalled,
@@ -153,6 +216,8 @@ public sealed class ProjectsController : ControllerBase
                 RevisionNumber = version.RevisionNumber, Validated = version.Validated,
                 DownloadUrl = $"/api/projects/{project.Id}/versions/{version.Id}/download",
                 CreditsCharged = cost, CreditBalance = balance,
+                FreeBuildUsed = usedFreeBuild,
+                FreeBuildsRemaining = await _entitlementService.GetRemainingAsync(userId, CancellationToken.None),
             });
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -161,8 +226,8 @@ public sealed class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SaaS build failed after charging.");
-            return StatusCode(500, new { error = "Build failed. Your credits were returned." });
+            _logger.LogError("SaaS build failed after charging ({FailureType}).", ex.GetType().Name);
+            return StatusCode(500, new { error = ResourcesReturnedMessage() });
         }
         finally
         {
@@ -170,7 +235,8 @@ public sealed class ProjectsController : ControllerBase
             {
                 // Failed project inserts must never be retried by refund's SaveChanges.
                 _db.ChangeTracker.Clear();
-                await _creditService.RefundAsync(userId, cost, buildReference, CancellationToken.None);
+                if (cost > 0) await _creditService.RefundAsync(userId, cost, buildReference, CancellationToken.None);
+                if (usedFreeBuild) await _entitlementService.RefundAsync(userId, buildReference, CancellationToken.None);
                 if (artifactKey is not null) _artifactStore.TryDelete(artifactKey);
             }
         }

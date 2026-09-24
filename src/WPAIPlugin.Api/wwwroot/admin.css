@@ -1,0 +1,134 @@
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+  border-bottom: 1px solid var(--line);
+}
+.admin-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 4px;
+  cursor: pointer;
+}
+.admin-tab:hover {
+  color: var(--text);
+}
+.admin-tab[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.admin-panel-section {
+  margin-top: 24px;
+}
+.admin-stat-grid {
+  margin-top: 0;
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 900px) {
+  .admin-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.admin-search {
+  margin-top: 12px;
+  margin-bottom: 16px;
+  max-width: 320px;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.admin-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.admin-table tbody tr:hover {
+  background: var(--surface-raised);
+}
+.admin-table a,
+.admin-table button.link {
+  color: var(--accent);
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.admin-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+@media (max-width: 767px) {
+  .admin-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-detail-grid h3 {
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.admin-adjust-form {
+  max-width: 360px;
+  margin-top: 12px;
+}
+.admin-date-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.admin-date-filter[aria-current="true"] {
+  background: var(--surface-raised);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.admin-note {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.admin-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.admin-promotion-form {
+  max-width: 480px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.admin-promotion-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.admin-promotion-form label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.admin-promotion-form input[type="checkbox"] {
+  align-self: flex-start;
+}

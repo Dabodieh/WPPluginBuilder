@@ -1,0 +1,87 @@
+# Production deployment EXAMPLE. Copy this file (e.g. to
+# docker-compose.prod.yml, which is gitignored - see repository .gitignore)
+# and fill in real values via a .env file or your platform's secret store.
+# Never commit real credentials.
+#
+# This is not a complete orchestration platform: no autoscaling, no
+# multi-host networking, no automatic TLS. It starts the app and its
+# database with the persistent volumes production needs. Reverse-proxy
+# TLS termination (nginx/Caddy/Cloudflare/a cloud load balancer) sits in
+# front of this and is documented, not included, in README "Production
+# Deployment" - the app itself does not need to know which one you use as
+# long as it forwards X-Forwarded-Proto/Host/For and is listed under
+# ForwardedHeaders__KnownProxies or ForwardedHeaders__KnownNetworks below.
+#
+# Postgres is NOT exposed on a public port here - only reachable from the
+# "app" service over the internal compose network.
+name: wpaiplugin-prod
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wpaiplugin}
+      POSTGRES_USER: ${POSTGRES_USER:-wpaiplugin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a real password in .env, never here}
+    volumes:
+      - wpaiplugin_prod_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wpaiplugin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-wpaiplugin};Username=${POSTGRES_USER:-wpaiplugin};Password=${POSTGRES_PASSWORD:?}"
+      Planning__DefaultProvider: ${PLANNING_DEFAULT_PROVIDER:-openai}
+      Planning__OpenAI__ApiKey: ${OPENAI_API_KEY:?set a real key in .env, never here}
+      Planning__Anthropic__ApiKey: ${ANTHROPIC_API_KEY:-}
+      # Required together, or the app refuses to start outside Development -
+      # see Program.cs's Production startup validation and README "Required
+      # environment variables". Password reset / email confirmation links are
+      # built from App__PublicBaseUrl only, never a request Host header.
+      # Variable names on the right match .env.example exactly - one .env
+      # file works for both a compose deployment and a direct env-file one.
+      App__PublicBaseUrl: ${App__PublicBaseUrl:?set your real https:// domain in .env, never here}
+      Support__Email: ${Support__Email:?set a real monitored support address in .env, never here}
+      Email__FromAddress: ${Email__FromAddress:?set a real sender address in .env, never here}
+      Email__FromName: ${Email__FromName:-ModuleMint}
+      Resend__ApiKey: ${Resend__ApiKey:?set a real key in .env, never here}
+      # Optional: the email address that becomes Admin on first startup after
+      # it registers (see README "Admin bootstrap"). Leave unset until you
+      # know which account that should be.
+      Admin__BootstrapEmail: ${ADMIN__BOOTSTRAPEMAIL:-}
+      # Reverse-proxy trust: list your proxy's IP(s), e.g. the Docker bridge
+      # gateway or your load balancer's address(es). Leave empty (default)
+      # and nothing is trusted from outside the container - see README.
+      ForwardedHeaders__KnownProxies__0: ${TRUSTED_PROXY_IP:-}
+    # Persist generated ZIPs and Data Protection keys (auth/session survival
+    # across restarts) - both already point here via the Dockerfile's own
+    # ENV defaults; the volumes below just make that path durable.
+    volumes:
+      - wpaiplugin_prod_artifacts:/app/App_Data/artifacts
+      - wpaiplugin_prod_dpkeys:/app/App_Data/dataprotection-keys
+      # Only mount the Docker socket if you want Build & Validate available
+      # in production (see README "Docker validation in production"):
+      # - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8080:8080"
+    # No container-level healthcheck here: the aspnet:8.0 base image has no
+    # curl/wget to probe GET /health/live with. Point your reverse proxy or
+    # orchestrator's own HTTP health check at that path instead (it needs no
+    # extra tooling in the image), or add curl in a custom image layer if
+    # you need a Docker-level check specifically.
+
+volumes:
+  wpaiplugin_prod_db:
+  wpaiplugin_prod_artifacts:
+  wpaiplugin_prod_dpkeys:

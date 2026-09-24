@@ -3,102 +3,30 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>My Plugins - WPAI Plugin Builder</title>
-<link rel="stylesheet" href="auth.css" />
+<meta name="color-scheme" content="dark" />
+<title>My Plugins — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
 </head>
 <body>
-<main class="wide">
-  <div class="top-nav">
-    <h1>My Plugins</h1>
-    <span class="who"><a class="link" href="dashboard.html">Dashboard</a></span>
-  </div>
+<header class="app-header"><nav id="appNav" data-active="myplugins" aria-label="Main navigation"></nav></header>
 
-  <div class="actions" style="margin-bottom:16px">
-    <a href="builder.html"><button type="button">+ Create Plugin</button></a>
-  </div>
+<main class="app-shell page">
+<section class="page-header-row">
+  <h1>My Plugins</h1>
+  <a class="btn btn-primary" href="builder.html">+ New Plugin</a>
+</section>
 
-  <div id="emptyState" class="card" hidden>
-    <p class="sub">No plugins yet.</p>
-    <a href="builder.html"><button type="button">Create your first plugin</button></a>
-  </div>
+<div id="emptyState" class="card empty-state" hidden>
+  <p>You haven't built any plugins yet.</p>
+  <p class="empty-state-sub">Every plugin you build is saved here with its version history, ready to re-download anytime.</p>
+  <a class="btn btn-primary" href="builder.html">Build your first plugin</a>
+</div>
 
-  <div id="projectList"></div>
+<div id="projectList" class="project-list"></div>
 </main>
-<script>
-const el = (id) => document.getElementById(id);
-
-function formatDate(iso) {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  } catch (err) {
-    return iso;
-  }
-}
-
-async function loadProjects() {
-  try {
-    const response = await fetch("/api/projects");
-    if (!response.ok) {
-      window.location.href = "login.html";
-      return;
-    }
-
-    const projects = await response.json();
-    if (projects.length === 0) {
-      el("emptyState").hidden = false;
-      return;
-    }
-
-    const list = el("projectList");
-    projects.forEach((p) => {
-      const card = document.createElement("section");
-      card.className = "card";
-
-      const title = document.createElement("h2");
-      title.style.margin = "0 0 6px";
-      title.style.fontSize = "16px";
-      title.textContent = p.name;
-      card.appendChild(title);
-
-      const meta = document.createElement("p");
-      meta.className = "sub";
-      meta.style.margin = "0 0 12px";
-      meta.textContent =
-        `Version ${p.latestPluginVersion} · Revision ${p.latestRevisionNumber} · ` +
-        `Validated ${p.validated ? "✓" : "—"} · ${formatDate(p.updatedAtUtc)}`;
-      card.appendChild(meta);
-
-      const actions = document.createElement("div");
-      actions.className = "actions";
-      actions.style.marginTop = "0";
-
-      const openLink = document.createElement("a");
-      openLink.href = `plugin.html?id=${encodeURIComponent(p.id)}`;
-      const openBtn = document.createElement("button");
-      openBtn.type = "button";
-      openBtn.className = "secondary";
-      openBtn.textContent = "Open";
-      openLink.appendChild(openBtn);
-      actions.appendChild(openLink);
-
-      const downloadLink = document.createElement("a");
-      downloadLink.href = p.downloadUrl;
-      const downloadBtn = document.createElement("button");
-      downloadBtn.type = "button";
-      downloadBtn.className = "secondary";
-      downloadBtn.textContent = "Download";
-      downloadLink.appendChild(downloadBtn);
-      actions.appendChild(downloadLink);
-
-      card.appendChild(actions);
-      list.appendChild(card);
-    });
-  } catch (err) {
-    window.location.href = "login.html";
-  }
-}
-
-loadProjects();
-</script>
+<script src="api.js"></script>
+<script src="nav.js"></script>
+<script src="myplugins.js"></script>
 </body>
 </html>

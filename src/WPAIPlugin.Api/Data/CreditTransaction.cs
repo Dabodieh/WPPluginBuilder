@@ -6,6 +6,11 @@ public static class CreditTransactionType
     public const string PluginBuild = "PluginBuild";
     public const string ValidatedBuild = "ValidatedBuild";
     public const string Refund = "Refund";
+    public const string AdminAdjustment = "AdminAdjustment";
+    public const string CreditPurchase = "CreditPurchase";
+
+    /// <summary>A promotional bonus credited alongside a real CreditPurchase - never merged into the purchased amount, so purchased vs. promotional credits stay distinguishable in reporting.</summary>
+    public const string PromotionBonus = "PromotionBonus";
 }
 
 // Immutable ledger entry (Milestone 12). Never updated or deleted after

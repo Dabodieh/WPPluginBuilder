@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Billing — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
+<link rel="stylesheet" href="billing.css" />
+</head>
+<body>
+<header class="app-header"><nav id="appNav" data-active="billing" aria-label="Main navigation"></nav></header>
+
+<main class="app-shell page" id="billing" hidden>
+<section class="page-header">
+  <h1>Billing</h1>
+  <p class="page-lead">Buy credits and view your purchase history.</p>
+</section>
+
+<div id="checkoutNotice" class="notice" hidden></div>
+
+<section class="card elev-sm content-card balance-card">
+  <h2 class="card-kicker">Current credits</h2>
+  <p id="currentBalance" role="status" class="stat-value">Loading&hellip;</p>
+</section>
+
+<section class="billing-section">
+  <h2 class="section-title">Promo code</h2>
+  <form id="promoForm" class="promo-form" novalidate>
+    <label for="promoCode" class="visually-hidden">Promo code</label>
+    <input type="text" id="promoCode" class="input" autocomplete="off" placeholder="WELCOME25" />
+    <button type="submit" class="btn btn-secondary">Apply</button>
+  </form>
+  <p id="promoStatus" class="loading-line promo-status" role="status" hidden></p>
+</section>
+
+<section class="billing-section">
+  <h2 class="section-title">Buy credits</h2>
+  <div id="packList" class="pack-list"><p role="status">Loading&hellip;</p></div>
+</section>
+
+<section>
+  <h2 class="section-title">Purchase history</h2>
+  <div id="purchaseHistory"><p role="status">Loading&hellip;</p></div>
+</section>
+
+<footer class="site-footer-links">
+  <a href="terms.html">Terms of Service</a> &middot; <a href="refunds.html">Refund Policy</a>
+</footer>
+
+</main>
+<script src="api.js"></script>
+<script src="nav.js"></script>
+<script src="billing.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+.git
+.gitignore
+.claude
+**/bin/
+**/obj/
+**/[Tt]est[Rr]esult*/
+*.trx
+
+# Secrets / local overrides - never bake into an image
+.env
+.env.*
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/secrets.json
+
+# Local artifacts / generated ZIPs
+*.zip
+src/WPAIPlugin.Api/App_Data/
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+
+# Docs (not needed at runtime, keeps context small)
+*.md
+!README.md

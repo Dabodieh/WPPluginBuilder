@@ -11,7 +11,8 @@
 
   This script does not reimplement plugin generation. It starts the existing
   ASP.NET Core API and POSTs a known PluginSpec to the existing
-  POST /api/plugins/build endpoint, using the ZIP that endpoint returns.
+  Development-only POST /api/plugins/build endpoint, using the ZIP it returns.
+  Both legacy build routes are unavailable outside Development.
 
   All Docker/WP-CLI commands run synchronously via the call operator (&).
   Only the API process runs as a background Process object, because it must

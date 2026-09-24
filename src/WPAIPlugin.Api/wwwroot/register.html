@@ -3,73 +3,45 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Create account - WPAI Plugin Builder</title>
-<link rel="stylesheet" href="auth.css" />
+<meta name="color-scheme" content="dark" />
+<title>Create account — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
 </head>
 <body>
-<main>
-  <h1>WPAI Plugin Builder</h1>
-  <p class="sub">Create an account.</p>
+<main class="container-narrow auth-page">
+<a class="wordmark auth-brand" href="/" aria-label="ModuleMint home"><span class="brand-mark" aria-hidden="true">M</span>ModuleMint</a>
 
-  <section class="card">
-    <form id="registerForm">
-      <label for="email">Email</label>
-      <input type="email" id="email" autocomplete="username" required />
+<h1>Create your account</h1>
+<p class="page-lead">Start planning and building WordPress plugins with AI.</p>
 
-      <label for="password">Password</label>
-      <input type="password" id="password" autocomplete="new-password" required />
+<section class="panel auth-panel">
+<form id="registerForm" novalidate>
+  <div class="field">
+    <label for="email">Email</label>
+    <input type="email" id="email" autocomplete="username" required />
+  </div>
+  <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" autocomplete="new-password" required />
+    <p class="password-hint">At least 6 characters, with an uppercase letter, a lowercase letter, a number and a symbol.</p>
+  </div>
+  <div class="field">
+    <label for="confirmPassword">Confirm password</label>
+    <input type="password" id="confirmPassword" autocomplete="new-password" required />
+  </div>
 
-      <div class="actions">
-        <button type="submit" id="registerBtn">Create account</button>
-        <span id="registerLoading" hidden>Creating account&hellip;</span>
-      </div>
-    </form>
+  <button type="submit" id="registerBtn" class="button auth-submit">Create account</button>
+  <p id="registerLoading" class="auth-loading" hidden><span class="spinner" aria-hidden="true"></span> Creating account&hellip;</p>
+</form>
 
-    <div id="registerError" class="notice error" hidden></div>
+<div id="registerError" class="notice error" role="alert" hidden></div>
+</section>
 
-    <p class="sub" style="margin-top:16px">
-      Already have an account? <a class="link" href="login.html">Log in</a>.
-    </p>
-  </section>
+<p class="auth-footer-note">Already have an account? <a href="login.html">Log in</a></p>
+<p class="auth-back-link"><a href="/">&larr; Back to homepage</a></p>
 </main>
-<script>
-document.getElementById("registerForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errorNode = document.getElementById("registerError");
-  errorNode.hidden = true;
-
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  document.getElementById("registerBtn").disabled = true;
-  document.getElementById("registerLoading").hidden = false;
-
-  try {
-    const response = await fetch("/api/account/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      const message = body && Array.isArray(body.errors) && body.errors.length > 0
-        ? body.errors.join(" ")
-        : (body && body.error) || "Could not create account.";
-      errorNode.textContent = message;
-      errorNode.hidden = false;
-      return;
-    }
-
-    window.location.href = "dashboard.html";
-  } catch (err) {
-    errorNode.textContent = "Could not reach the server. Please try again.";
-    errorNode.hidden = false;
-  } finally {
-    document.getElementById("registerBtn").disabled = false;
-    document.getElementById("registerLoading").hidden = true;
-  }
-});
-</script>
+<script src="api.js"></script>
+<script src="register.js"></script>
 </body>
 </html>

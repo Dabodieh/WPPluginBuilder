@@ -218,6 +218,159 @@ namespace WPAIPlugin.Api.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("WPAIPlugin.Api.Data.AdminAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AdminUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("TargetType", "TargetId");
+
+                    b.ToTable("AdminAuditLogs");
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.AiUsageEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("EstimatedCostUsdMicros")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FailureCategory")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Succeeded")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TotalTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Provider", "Model");
+
+                    b.ToTable("AiUsageEvents");
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.BuildEntitlementAccount", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RemainingBuilds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("BuildEntitlementAccounts", t =>
+                        {
+                            t.HasCheckConstraint("CK_BuildEntitlementAccounts_RemainingBuilds_NonNegative", "\"RemainingBuilds\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.BuildEntitlementTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PromotionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromotionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BuildEntitlementTransactions");
+                });
+
             modelBuilder.Entity("WPAIPlugin.Api.Data.CreditAccount", b =>
                 {
                     b.Property<string>("UserId")
@@ -225,6 +378,9 @@ namespace WPAIPlugin.Api.Migrations
 
                     b.Property<int>("Balance")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -341,6 +497,202 @@ namespace WPAIPlugin.Api.Migrations
                     b.ToTable("PluginVersions");
                 });
 
+            modelBuilder.Entity("WPAIPlugin.Api.Data.ProcessedPaymentEvent", b =>
+                {
+                    b.Property<string>("ProviderEventId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ProcessedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ProviderEventId");
+
+                    b.ToTable("ProcessedPaymentEvents");
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.Promotion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliesToPackId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Eligibility")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EndsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MaxRedemptions")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MaxRedemptionsPerUser")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RequiresCode")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("StartsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("IsEnabled");
+
+                    b.ToTable("Promotions");
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.PromotionRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BenefitAmount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BenefitType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PromotionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PurchaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PurchaseId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PromotionId", "UserId");
+
+                    b.ToTable("PromotionRedemptions");
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.Purchase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AmountMinor")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BaseAmountMinor")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BonusCredits")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreditsPurchased")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PackId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PromotionCodeSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PromotionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PromotionNameSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderCheckoutSessionId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderPaymentIntentId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RefundedAmountMinor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("PromotionId");
+
+                    b.HasIndex("ProviderCheckoutSessionId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Purchases");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -392,6 +744,46 @@ namespace WPAIPlugin.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("WPAIPlugin.Api.Data.AdminAuditLog", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.AiUsageEvent", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.BuildEntitlementAccount", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithOne()
+                        .HasForeignKey("WPAIPlugin.Api.Data.BuildEntitlementAccount", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.BuildEntitlementTransaction", b =>
+                {
+                    b.HasOne("WPAIPlugin.Api.Data.Promotion", null)
+                        .WithMany()
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("WPAIPlugin.Api.Data.CreditAccount", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
@@ -419,6 +811,40 @@ namespace WPAIPlugin.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("PluginProject");
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.PromotionRedemption", b =>
+                {
+                    b.HasOne("WPAIPlugin.Api.Data.Promotion", null)
+                        .WithMany()
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WPAIPlugin.Api.Data.Purchase", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("WPAIPlugin.Api.Data.Purchase", b =>
+                {
+                    b.HasOne("WPAIPlugin.Api.Data.Promotion", null)
+                        .WithMany()
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("WPAIPlugin.Api.Data.PluginProject", b =>

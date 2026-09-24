@@ -3,197 +3,128 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WPAI Plugin Builder</title>
-<style>
-  :root {
-    color-scheme: light dark;
-    --bg: #f6f5f2;
-    --surface: #ffffff;
-    --border: #d9d6cf;
-    --text: #1e1c18;
-    --text-dim: #6b6558;
-    --accent: #8a4f2e;
-    --accent-contrast: #ffffff;
-    --danger-bg: #fbeceb;
-    --danger-border: #e3b3ae;
-    --danger-text: #7a2a22;
-    --warn-bg: #fdf3e2;
-    --warn-border: #e8c98a;
-    --warn-text: #6b4a0d;
-    --ok-bg: #eaf4ec;
-    --ok-border: #a9d3b1;
-    --ok-text: #285c34;
-    --code-bg: #f0efe9;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #161412;
-      --surface: #1d1a17;
-      --border: #39352e;
-      --text: #ece7dc;
-      --text-dim: #a39c8c;
-      --accent: #e0a874;
-      --accent-contrast: #1e1c18;
-      --danger-bg: #2c1613;
-      --danger-border: #5c2b25;
-      --danger-text: #f0b3ac;
-      --warn-bg: #2b2210;
-      --warn-border: #5c4a1e;
-      --warn-text: #e8c98a;
-      --ok-bg: #16281c;
-      --ok-border: #2f5c3c;
-      --ok-text: #a9d3b1;
-      --code-bg: #211e1a;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    padding: 32px 16px 64px;
-  }
-  main { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  p.sub { color: var(--text-dim); margin: 0 0 28px; }
-  section.card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
-  textarea, input[type=text], select {
-    width: 100%;
-    font: inherit;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--text);
-  }
-  textarea { min-height: 110px; resize: vertical; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
-  .row > div { flex: 1; min-width: 160px; }
-  button {
-    font: inherit;
-    font-weight: 600;
-    padding: 10px 18px;
-    border-radius: 6px;
-    border: 1px solid var(--accent);
-    background: var(--accent);
-    color: var(--accent-contrast);
-    cursor: pointer;
-  }
-  button.secondary { background: var(--surface); color: var(--accent); }
-  button:disabled { opacity: 0.5; cursor: default; }
-  .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
-  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-  .field-grid label { margin-bottom: 4px; }
-  .field-full { grid-column: 1 / -1; }
-  dl.feature { margin: 10px 0 0; font-size: 14px; }
-  dl.feature dt { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-top: 8px; }
-  dl.feature dd { margin: 2px 0 0; }
-  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
-  .badge-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .badge { background: var(--code-bg); border-radius: 4px; padding: 3px 8px; font-size: 13px; }
-  .notice { border-radius: 6px; padding: 12px 14px; margin-top: 16px; font-size: 14px; }
-  .notice.warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); }
-  .notice.error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger-text); }
-  .notice.ok { background: var(--ok-bg); border: 1px solid var(--ok-border); color: var(--ok-text); }
-  .notice ul { margin: 6px 0 0; padding-left: 20px; }
-  [hidden] { display: none !important; }
-  .spinner {
-    display: inline-block; width: 14px; height: 14px;
-    border: 2px solid currentColor; border-right-color: transparent;
-    border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  h2.section-title { font-size: 16px; margin: 0 0 12px; }
-  .feature-block { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
-</style>
+<meta name="color-scheme" content="dark" />
+<title>Builder — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
 </head>
 <body>
-<main>
-  <div class="row" id="authGate" style="justify-content:space-between;align-items:baseline;margin-bottom:4px">
-    <h1 style="margin:0">WPAI Plugin Builder</h1>
-    <span id="loggedOutNav">
-      <a href="login.html">Log in</a> &middot; <a href="register.html">Create account</a>
-    </span>
-    <span id="loggedInNav" hidden>
-      <a href="dashboard.html">Dashboard</a> &middot; <a href="#" id="logoutLink">Log out</a>
-    </span>
+<header class="app-header"><nav id="appNav" data-active="builder" aria-label="Main navigation"></nav></header>
+
+<main class="container-medium page">
+<section class="page-header">
+  <h1>Build a WordPress Plugin</h1>
+  <p class="page-lead">Describe what you want to build. We'll turn the request into a structured plugin plan before generating files.</p>
+</section>
+
+<section class="card elev-md builder-step-card" aria-labelledby="step1-title">
+  <div class="step-heading">
+    <span class="tag tag-accent">1</span>
+    <h2 class="step-heading-label" id="step1-title">Describe your plugin</h2>
   </div>
-  <p class="sub">Describe a WordPress plugin. Review the AI's proposed spec. Build a real plugin ZIP.</p>
-
-  <section class="card">
+  <div class="field">
     <label for="description">What do you want your WordPress plugin to do?</label>
-    <textarea id="description" placeholder="Create a staff directory with staff members, job titles and a shortcode."></textarea>
+    <textarea id="description" class="input" placeholder="Create a staff directory with staff members, job titles and a shortcode."></textarea>
+  </div>
+  <button id="planBtn" type="button" class="btn btn-primary btn-block">Create Plan — free<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></button>
+  <span id="planFreeBuildsTag" class="tag tag-outline free-build-tag" role="status" hidden></span>
+  <p id="planLoading" class="loading-line" hidden><span class="spinner" aria-hidden="true"></span> Generating plugin plan&hellip;</p>
+  <div id="planError" class="notice error" role="alert" hidden></div>
+</section>
 
-    <div class="actions">
-      <button id="planBtn" type="button">Plan Plugin — free</button>
-      <span id="planLoading" hidden><span class="spinner"></span> Planning&hellip;</span>
+<div id="stepsPreview" class="step-stack step-stack-preview" aria-hidden="true">
+  <div class="card step-card">
+    <div class="step-heading">
+      <span class="tag tag-neutral">2</span>
+      <span class="step-heading-label">Review plan</span>
     </div>
+    <p class="step-copy">See the structured plugin plan — post types, fields and shortcode — before anything is generated.</p>
+  </div>
+  <div class="card step-card">
+    <div class="step-heading">
+      <span class="tag tag-neutral">3</span>
+      <span class="step-heading-label">Build &amp; validate</span>
+    </div>
+    <p class="step-copy">Generate the plugin, optionally test it against WordPress, then download the ZIP.</p>
+  </div>
+</div>
 
-    <div id="planError" class="notice error" hidden></div>
-  </section>
-
-  <section id="resultCard" class="card" hidden>
-    <h2 class="section-title">Proposed plugin</h2>
+<div id="resultCard" class="step-stack" hidden>
+  <section class="card elev-md builder-step-card" aria-labelledby="step2-title">
+    <div class="step-heading">
+      <span class="tag tag-accent">2</span>
+      <h2 class="step-heading-label" id="step2-title">Review plan</h2>
+    </div>
 
     <div class="field-grid">
-      <div>
-        <label for="f-name">Name</label>
-        <input type="text" id="f-name" />
+      <div class="field">
+        <label for="f-name">Plugin name</label>
+        <input type="text" id="f-name" class="input" />
       </div>
-      <div>
+      <div class="field">
         <label for="f-slug">Slug</label>
-        <input type="text" id="f-slug" />
+        <input type="text" id="f-slug" class="input" />
       </div>
-      <div class="field-full">
+      <div class="field field-full">
         <label for="f-description">Description</label>
-        <input type="text" id="f-description" />
+        <input type="text" id="f-description" class="input" />
       </div>
-      <div>
+      <div class="field">
         <label for="f-version">Version</label>
-        <input type="text" id="f-version" />
+        <input type="text" id="f-version" class="input" />
       </div>
-      <div>
+      <div class="field">
         <label for="f-author">Author</label>
-        <input type="text" id="f-author" />
+        <input type="text" id="f-author" class="input" />
       </div>
     </div>
 
-    <dl class="feature" id="featureSummary"></dl>
+    <dl class="feature feature-summary" id="featureSummary"></dl>
 
-    <div id="unsupportedNotice" class="notice warn" hidden>
+    <div id="unsupportedNotice" class="notice warn" role="status" hidden>
       <strong>Not currently supported:</strong>
       <ul id="unsupportedList"></ul>
     </div>
+  </section>
 
-    <div class="actions">
-      <button id="buildBtn" type="button">Build Plugin</button>
-      <button id="buildValidateBtn" type="button" class="secondary">Build &amp; Validate</button>
-      <span id="buildLoading" hidden><span class="spinner"></span> Building&hellip;</span>
-      <span id="buildValidateLoading" hidden><span class="spinner"></span> Building and validating plugin&hellip;</span>
+  <section class="card elev-md builder-step-card" aria-labelledby="step3-title">
+    <div class="step-heading">
+      <span class="tag tag-accent">3</span>
+      <h2 class="step-heading-label" id="step3-title">Build &amp; validate</h2>
     </div>
 
-    <p id="creditBalance" role="status">Loading credits…</p>
+    <div class="build-actions">
+      <div>
+        <button id="buildBtn" type="button" class="btn btn-primary">Build Plugin</button>
+        <p class="build-option">Generate the plugin ZIP.</p>
+      </div>
+      <div>
+        <button id="buildValidateBtn" type="button" class="btn btn-secondary">Build &amp; Validate</button>
+        <p class="build-option">Also runs the plugin through WordPress/Docker validation.</p>
+      </div>
+    </div>
+    <p id="buildLoading" class="loading-line" hidden><span class="spinner" aria-hidden="true"></span> Building plugin&hellip;</p>
+    <p id="buildValidateLoading" class="loading-line" hidden><span class="spinner" aria-hidden="true"></span> Building and validating plugin&hellip;</p>
 
-    <div id="buildError" class="notice error" hidden></div>
-    <div id="buildSuccess" class="notice ok" hidden>
-      <p id="buildSuccessMessage" style="margin:0 0 12px"></p>
-      <div class="actions" style="margin-top:0">
-        <a id="downloadZipLink" href="#"><button type="button">Download ZIP</button></a>
-        <a id="viewPluginLink" href="#"><button type="button" class="secondary">View Plugin</button></a>
-        <button id="createAnotherBtn" type="button" class="secondary">Create Another</button>
+    <p id="creditBalance" class="meta-line" role="status">Loading credits&hellip;</p>
+    <p id="freeBuildsBalance" class="meta-line" role="status"></p>
+
+    <div id="buildError" class="notice error" role="alert" hidden></div>
+    <div id="buildSuccess" class="notice ok" role="status" hidden>
+      <p class="success-heading">Plugin built successfully</p>
+      <p id="buildSuccessMessage"></p>
+      <div class="success-actions">
+        <a id="downloadZipLink" href="#" class="btn btn-primary btn-download">Download Plugin<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+        <a id="viewPluginLink" href="#" class="btn btn-secondary">View in My Plugins</a>
+        <button id="createAnotherBtn" type="button" class="btn btn-secondary">Build Another</button>
       </div>
     </div>
   </section>
+</div>
 </main>
 
+<script src="api.js"></script>
+<script src="nav.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

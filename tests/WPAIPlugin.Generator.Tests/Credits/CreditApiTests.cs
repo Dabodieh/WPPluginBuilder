@@ -21,7 +21,7 @@ public class CreditApiTests
     private static async Task<HttpClient> Register(ProjectsTestFactory factory, string email = "credits@example.com")
     {
         var client = factory.CreateClient();
-        (await client.PostAsJsonAsync("/api/account/register", new { email, password = Password })).EnsureSuccessStatusCode();
+        (await client.PostJsonWithCsrfAsync("/api/account/register", new { email, password = Password })).EnsureSuccessStatusCode();
         return client;
     }
     private static async Task<int> Balance(HttpClient client) =>
@@ -33,15 +33,15 @@ public class CreditApiTests
         using var factory = new ProjectsTestFactory();
         using var first = await Register(factory);
         Assert.Equal(100, await Balance(first));
-        Assert.Equal(HttpStatusCode.BadRequest, (await first.PostAsJsonAsync("/api/account/register",
+        Assert.Equal(HttpStatusCode.BadRequest, (await first.PostJsonWithCsrfAsync("/api/account/register",
             new { email = "credits@example.com", password = Password })).StatusCode);
-        (await first.PostAsJsonAsync("/api/projects/build", new { spec = Spec })).EnsureSuccessStatusCode();
+        (await first.PostJsonWithCsrfAsync("/api/projects/build", new { spec = Spec })).EnsureSuccessStatusCode();
         using var second = await Register(factory, "second@example.com");
         Assert.Equal(100, await Balance(second));
         Assert.Equal(99, await Balance(first));
-        (await first.PostAsync("/api/account/logout", null)).EnsureSuccessStatusCode();
+        (await first.PostWithCsrfAsync("/api/account/logout", null)).EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.Unauthorized, (await first.GetAsync("/api/credits")).StatusCode);
-        (await first.PostAsJsonAsync("/api/account/login", new { email = "credits@example.com", password = Password })).EnsureSuccessStatusCode();
+        (await first.PostJsonWithCsrfAsync("/api/account/login", new { email = "credits@example.com", password = Password })).EnsureSuccessStatusCode();
         Assert.Equal(99, await Balance(first));
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -55,16 +55,16 @@ public class CreditApiTests
         using var configured = factory.WithWebHostBuilder(b => b.ConfigureServices(s =>
             s.PostConfigure<CreditOptions>(o => { o.SignupGrant = 12; o.StandardBuildCost = 3; o.ValidatedBuildCost = 5; })));
         using var client = configured.CreateClient();
-        (await client.PostAsJsonAsync("/api/account/register", new { email = "config@example.com", password = Password })).EnsureSuccessStatusCode();
+        (await client.PostJsonWithCsrfAsync("/api/account/register", new { email = "config@example.com", password = Password })).EnsureSuccessStatusCode();
         var credits = await client.GetFromJsonAsync<JsonElement>("/api/credits?userId=someone-else");
-        Assert.Equal(new[] { "balance", "standardBuildCost", "validatedBuildCost" }, credits.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(new[] { "balance", "freeBuildsRemaining", "standardBuildCost", "validatedBuildCost" }, credits.EnumerateObject().Select(p => p.Name));
         Assert.Equal(12, credits.GetProperty("balance").GetInt32());
         Assert.Equal(3, credits.GetProperty("standardBuildCost").GetInt32());
         Assert.Equal(5, credits.GetProperty("validatedBuildCost").GetInt32());
-        (await client.PostAsJsonAsync("/api/projects/build", new { spec = Spec, creditCost = 0, credits = 900 })).EnsureSuccessStatusCode();
+        (await client.PostJsonWithCsrfAsync("/api/projects/build", new { spec = Spec, creditCost = 0, credits = 900 })).EnsureSuccessStatusCode();
         Assert.Equal(9, await Balance(client));
         foreach (var endpoint in new[] { "/api/credits", "/api/credits/grant", "/api/credits/refund", "/api/credits/add" })
-            Assert.Contains((await client.PostAsJsonAsync(endpoint, new { balance = 1000 })).StatusCode,
+            Assert.Contains((await client.PostJsonWithCsrfAsync(endpoint, new { balance = 1000 })).StatusCode,
                 new[] { HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed });
         Assert.Equal(9, await Balance(client));
     }
@@ -76,9 +76,9 @@ public class CreditApiTests
     {
         using var factory = new ProjectsTestFactory();
         using var client = await Register(factory);
-        (await client.PostAsJsonAsync("/api/plugins/plan", new { description = "A shortcode plugin" })).EnsureSuccessStatusCode();
+        (await client.PostJsonWithCsrfAsync("/api/plugins/plan", new { description = "A shortcode plugin" })).EnsureSuccessStatusCode();
         Assert.Equal(100, await Balance(client));
-        var response = await client.PostAsJsonAsync("/api/projects/build", new { spec = Spec, validated, creditCost = -100 });
+        var response = await client.PostJsonWithCsrfAsync("/api/projects/build", new { spec = Spec, validated, creditCost = -100 });
         response.EnsureSuccessStatusCode();
         Assert.Equal(remaining, await Balance(client));
         using var scope = factory.Services.CreateScope();
@@ -105,7 +105,7 @@ public class CreditApiTests
         }
         var calls = 0;
         factory.FakeValidator.Handler = (_, _) => { calls++; throw new Exception("must not validate"); };
-        var response = await client.PostAsJsonAsync("/api/projects/build", new { spec = Spec, validated });
+        var response = await client.PostJsonWithCsrfAsync("/api/projects/build", new { spec = Spec, validated });
         Assert.Equal(HttpStatusCode.PaymentRequired, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(validated ? 2 : 1, body.GetProperty("required").GetInt32());
@@ -132,7 +132,7 @@ public class CreditApiTests
         if (failure == "artifact") await File.WriteAllTextAsync(factory.ArtifactRoot, "blocks directory creation");
         try
         {
-            var response = await client.PostAsJsonAsync("/api/projects/build", new { spec = Spec, validated = failure == "validation" });
+            var response = await client.PostJsonWithCsrfAsync("/api/projects/build", new { spec = Spec, validated = failure == "validation" });
             Assert.False(response.IsSuccessStatusCode);
             Assert.Equal(100, await Balance(client));
             using var scope = factory.Services.CreateScope();
@@ -154,7 +154,7 @@ public class CreditApiTests
         using var factory = new ProjectsTestFactory();
         factory.ConfigureDatabase = o => o.AddInterceptors(new FailSave(typeof(CreditAccount)));
         using var client = factory.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/account/register", new { email = "fail@example.com", password = Password });
+        var response = await client.PostJsonWithCsrfAsync("/api/account/register", new { email = "fail@example.com", password = Password });
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -188,7 +188,7 @@ public class CreditApiTests
         Assert.Contains("/api/projects/build", js);
         Assert.Contains("/api/credits", js);
         Assert.DoesNotContain("/api/plugins/build", js);
-        Assert.Contains("/api/credits", await client.GetStringAsync("/dashboard.html"));
+        Assert.Contains("/api/credits", await client.GetStringAsync("/dashboard.js"));
     }
 
     private sealed class FailSave(Type entityType) : SaveChangesInterceptor

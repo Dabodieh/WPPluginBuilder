@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Privacy Policy — ModuleMint</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="app.css" />
+<link rel="stylesheet" href="legal.css" />
+</head>
+<body>
+<main class="container-medium legal-page">
+<a class="wordmark auth-brand" href="/" aria-label="ModuleMint home"><span class="brand-mark" aria-hidden="true">M</span>ModuleMint</a>
+
+<h1>Privacy Policy</h1>
+<p class="page-lead">Last updated: draft, pending final owner/legal review. This page describes only what ModuleMint actually does today.</p>
+
+<div class="notice warn">
+  <strong>Owner action required before launch:</strong> the operator identity below is a placeholder
+  (<code>[LEGAL OPERATOR NAME]</code>) and the governing jurisdiction is a working assumption
+  (Scotland). Neither is confirmed. See <a href="support.html">Support</a> for how to reach us.
+</div>
+
+<section class="panel legal-panel">
+
+<h2>Who operates ModuleMint</h2>
+<p>ModuleMint is operated by <strong>[LEGAL OPERATOR NAME]</strong> (trading as ModuleMint). Full
+registered company/business details will be published here once confirmed by the business owner.</p>
+
+<h2>Account information</h2>
+<p>When you register, we store your email address and a securely hashed password (via ASP.NET Core
+Identity - we never store your password in plain text). We use this to authenticate you and to
+administer your account.</p>
+
+<h2>Plugin and project information</h2>
+<p>The plugin descriptions you submit, the structured plans generated from them, and the generated
+plugin files (ZIP downloads) are stored against your account so you can review and re-download them
+later, under My Plugins.</p>
+
+<h2>AI processing</h2>
+<p>Your plugin description is sent to our configured AI provider (OpenAI or Anthropic, depending on
+server configuration) to generate a structured plan. The AI provider never writes the plugin's
+source code directly - the code itself always comes from our own deterministic templates. We do not
+control how the AI provider itself may process this data beyond what their own policies describe.</p>
+
+<h2>AI usage metadata</h2>
+<p>We record metadata about each AI planning request - provider, model, token counts, an estimated
+cost, success/failure, and timing - for cost tracking and reliability purposes. We do not store the
+content of your prompts or the AI's response text in this record.</p>
+
+<h2>Payment and purchase information</h2>
+<p>Credit purchases are processed by Stripe. We never see or store your card number - Stripe's
+hosted Checkout page handles payment details directly. We store the purchase record itself (pack
+purchased, amount charged, status, and any promotion applied) for your billing history and our own
+accounting.</p>
+
+<h2>Credit ledger</h2>
+<p>Every change to your credit balance (signup grant, build charge, refund, purchase, admin
+adjustment, or promotional bonus) is recorded as an individual, permanent ledger entry, so your
+balance is always auditable.</p>
+
+<h2>Free-build entitlement ledger</h2>
+<p>Free plugin-build entitlements (granted at signup, or by a promotion) are tracked the same way -
+as a permanent ledger of grants and consumptions, separate from your credit balance.</p>
+
+<h2>Promotion and redemption information</h2>
+<p>If you apply a promotional code or benefit, we record that a specific promotion was applied to
+your account/purchase, for accounting and fraud-prevention purposes.</p>
+
+<h2>Admin audit records</h2>
+<p>Administrative actions taken on your account (for example, a manual credit adjustment or an
+account lock/unlock) are recorded in an internal audit log, visible only to authorized
+administrators, showing who made the change, what changed, and when.</p>
+
+<h2>Technical and security logs</h2>
+<p>Our servers keep standard operational logs (e.g. request outcomes, error categories) to operate
+and secure the service. We do not log passwords, session cookies, API keys, full card numbers, or
+password-reset links/tokens.</p>
+
+<h2>Authentication and cookies</h2>
+<p>We use a small number of strictly necessary cookies to keep you signed in (an authentication
+cookie) and to protect form submissions from cross-site request forgery (an anti-forgery cookie).
+These are not used for advertising or cross-site tracking.</p>
+
+<h2>Third-party processors</h2>
+<p>We share data with the following third parties only as needed to provide the service:</p>
+<ul>
+  <li><strong>Our configured AI provider</strong> (OpenAI or Anthropic) - receives your plugin
+  description to generate a plan.</li>
+  <li><strong>Stripe</strong> - processes credit-pack payments and holds your payment method/card
+  details; we never receive your raw card number.</li>
+  <li><strong>Resend</strong> - delivers transactional account emails (currently: password-reset
+  emails) on our behalf.</li>
+</ul>
+
+<h2>Retention</h2>
+<p>We retain account, project, credit-ledger, and purchase records for as long as your account
+remains active, since they are required for the service (billing history, plugin re-downloads,
+accounting) to function correctly. We do not currently operate a fixed automatic-deletion schedule;
+if you would like your account or data removed, contact us via <a href="support.html">Support</a>
+and we will assess the request, subject to any records we are legally required to keep (for example,
+financial/tax records).</p>
+
+<h2>Security</h2>
+<p>We use industry-standard practices appropriate to the service - encrypted password storage,
+HTTPS in production, and access controls on administrative functions. No online service can
+guarantee absolute security, and we do not claim one.</p>
+
+<h2>Your rights</h2>
+<p>Depending on your location, you may have rights to access, correct, or delete your personal
+data, or to object to certain processing. Contact us via <a href="support.html">Support</a> to make
+a request.</p>
+
+<h2>Contact</h2>
+<p>For any privacy question, contact <span data-support-email>the configured support address</span>.</p>
+
+<h2>Changes to this policy</h2>
+<p>We may update this policy as the service changes. Material changes will be reflected by updating
+the "last updated" note at the top of this page.</p>
+
+</section>
+
+<p class="auth-back-link"><a href="/">&larr; Back to homepage</a></p>
+</main>
+<script src="api.js"></script>
+<script src="legal.js"></script>
+</body>
+</html>

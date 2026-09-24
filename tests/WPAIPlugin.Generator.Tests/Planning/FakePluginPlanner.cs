@@ -33,6 +33,7 @@ internal sealed class FakePluginPlanner : IPluginPlanner
                 Features = new List<string> { "shortcode" },
             },
             UnsupportedRequirements = Array.Empty<string>(),
+            Provider = "fake",
         });
     }
 }

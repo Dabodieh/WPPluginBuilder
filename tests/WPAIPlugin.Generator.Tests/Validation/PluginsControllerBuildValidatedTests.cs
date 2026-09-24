@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using WPAIPlugin.Api.AiUsage;
 using WPAIPlugin.Api.Controllers;
+using WPAIPlugin.Api.Data;
+using WPAIPlugin.Api.Security;
 using WPAIPlugin.Api.Validation;
 using WPAIPlugin.Generator.Models;
 using WPAIPlugin.Generator.Tests.Planning;
@@ -29,13 +33,23 @@ public class PluginsControllerBuildValidatedTests
 
     private static PluginsController CreateController(
         FakeDockerPluginValidator validator,
-        ValidationOptions? options = null) =>
-        new(
+        ValidationOptions? options = null)
+    {
+        var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        return new(
             new global::WPAIPlugin.Generator.PluginBuilder(),
             new FakePluginPlanner(),
             validator,
             Options.Create(options ?? new ValidationOptions()),
+            new AiUsageRecorder(db, Options.Create(new AiPricingOptions())),
+            db,
+            TestPlanningRateLimiters.Generous(),
+            TestPlanningRateLimiters.Generous(),
+            Options.Create(new AbuseOptions()),
+            TestUserManagerFactory.Create(db),
             NullLogger<PluginsController>.Instance);
+    }
 
     [Fact]
     public async Task BuildValidated_ValidationPasses_ReturnsZip()

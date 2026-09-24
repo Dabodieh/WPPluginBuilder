@@ -5,11 +5,11 @@ namespace WPAIPlugin.Generator.Tests.Planning;
 /// <summary>
 /// Test double for <see cref="IPlanningProvider"/>. Never calls a real AI API.
 /// </summary>
-internal sealed class FakePlanningProvider : IPlanningProvider
+public sealed class FakePlanningProvider : IPlanningProvider
 {
     public string Name { get; init; } = "fake";
 
-    public Func<PlanningRequest, CancellationToken, Task<PlanningResult>>? Handler { get; init; }
+    public Func<PlanningRequest, CancellationToken, Task<PlanningResult>>? Handler { get; set; }
 
     public Task<PlanningResult> PlanAsync(PlanningRequest request, CancellationToken cancellationToken = default)
     {

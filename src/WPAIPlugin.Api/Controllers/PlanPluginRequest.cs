@@ -10,6 +10,7 @@ public sealed class PlanPluginRequest
     /// <summary>Optional AI provider name (e.g. "anthropic"). Omit to use the configured default.</summary>
     public string? Provider { get; set; }
 
-    /// <summary>Optional provider-specific model override.</summary>
-    public string? Model { get; set; }
+    // No client-supplied Model, temperature, systemPrompt, or similar field
+    // exists here by design - which model/prompt is used is always a
+    // server-side decision (see PlanningOptions), never client-influenced.
 }

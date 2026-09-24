@@ -19,4 +19,16 @@ public sealed class CreditAccount
     public DateTime UpdatedAtUtc { get; set; }
 
     public int Version { get; set; }
+
+    /// <summary>
+    /// Set once, at registration (Promotions + Free Builds milestone) - the
+    /// closest available proxy for "when this user registered", since
+    /// IdentityUser itself has no creation timestamp. Existing rows backfilled
+    /// to DateTime.MinValue - a deliberate "unknown/never new" sentinel, not a
+    /// guess - so pre-existing accounts can never satisfy
+    /// PromotionEligibility.NewRegistrations (registeredAtUtc &lt;
+    /// promotion.StartsAtUtc always holds for them). See
+    /// PROMOTIONS-FREE-BUILDS-COMPLETION.md.
+    /// </summary>
+    public DateTime CreatedAtUtc { get; set; }
 }

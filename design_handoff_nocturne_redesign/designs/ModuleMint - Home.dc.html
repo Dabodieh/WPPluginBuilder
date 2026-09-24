@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-bcf3e915-dd33-4386-a671-8ee1303f77a7/styles.css">
+<script src="_ds/nocturne-bcf3e915-dd33-4386-a671-8ee1303f77a7/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:
+  radial-gradient(1200px 720px at 82% -160px, color-mix(in srgb, var(--color-accent-900) 75%, transparent), transparent 60%),
+  radial-gradient(1100px 800px at -10% 100%, color-mix(in srgb, black 30%, transparent), transparent 55%),
+  var(--color-bg);}
+a{color:var(--color-accent)}
+a:hover{color:var(--color-accent-300)}
+.btn,.card,.tag,.input{transition:background 0.15s ease,box-shadow 0.15s ease,border-color 0.15s ease,transform 0.15s ease}
+.card:hover{transform:translateY(-2px)}
+</style>
+</helmet>
+
+<nav class="nav" style="max-width:1200px;margin:0 auto;padding:16px clamp(20px,5vw,32px)">
+  <span class="nav-brand">ModuleMint</span>
+  <a href="#how">How it works</a>
+  <a href="#features">Features</a>
+  <a href="ModuleMint - Dashboard.dc.html">Dashboard</a>
+  <button type="button" class="btn btn-primary" style="white-space:nowrap">Start Building<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="flex-shrink:0"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></button>
+</nav>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,5vw,32px)">
+  <section style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,0.9fr);gap:48px;align-items:center;padding:56px 0 64px">
+    <div>
+      <span style="display:block;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-accent);margin-bottom:16px">From an idea to a WordPress plugin</span>
+      <h1 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:clamp(36px,5.5vw,60px);line-height:1.08;letter-spacing:-0.015em;margin:0 0 20px">Build WordPress plugins with AI</h1>
+      <p style="font-size:17px;line-height:1.6;max-width:52ch;color:color-mix(in srgb, var(--color-text) 82%, transparent);margin:0 0 24px">Describe what you need. ModuleMint plans it, builds it, and hands you a ready-to-install ZIP — with optional WordPress validation before you download.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+        <button type="button" class="btn btn-primary" style="white-space:nowrap">Start Building<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="flex-shrink:0"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></button>
+        <a href="#how" class="btn btn-ghost" style="white-space:nowrap">See how it works</a>
+      </div>
+    </div>
+
+    <div class="card elev-md" style="padding:20px;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="card-kicker" style="font-size:11px">Idea → plugin</span>
+        <span class="tag tag-outline">Example</span>
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;color:color-mix(in srgb, var(--color-text) 70%, transparent);margin-bottom:6px">Your description</label>
+        <div class="input" style="min-height:64px;display:flex;align-items:center">Create a staff directory with name, email, job title and a shortcode.</div>
+      </div>
+      <div style="text-align:center;color:color-mix(in srgb, var(--color-text) 45%, transparent)">↓</div>
+      <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center;color:var(--color-accent-100)">
+            <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M40,64H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm176,56H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,72H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-accent)">Plugin plan</div>
+            <div style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:16px">Staff Directory</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:14px">
+          <span>✓ Custom Post Type</span>
+          <span>✓ Custom Fields</span>
+          <span>✓ Shortcode</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-divider);padding-top:10px;font-size:13px">
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);display:inline-block"></span>Ready to build</span>
+          <span style="color:color-mix(in srgb, var(--color-text) 55%, transparent)">.zip</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section style="background:radial-gradient(900px 420px at 85% -40%, color-mix(in srgb, var(--color-section-glow) 70%, transparent), transparent 64%), var(--color-section);padding:40px 0">
+  <div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,5vw,32px);display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+    <div>
+      <h2 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:26px;margin:0 0 6px">New here? Your first 2 plugins are on us.</h2>
+      <p style="margin:0 0 4px;font-size:15px;color:color-mix(in srgb, var(--color-text) 80%, transparent)">No credit card required. Build, validate, and download — see the whole flow before you ever pay for a credit.</p>
+      <p style="margin:0;font-size:13px;color:color-mix(in srgb, var(--color-text) 62%, transparent)">Then from £4.99 for 25 credits — pay only if you keep building.</p>
+    </div>
+    <button type="button" class="btn btn-primary" style="border-color:var(--color-text);color:var(--color-text)">Claim your free builds</button>
+  </div>
+</section>
+
+<div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,5vw,32px)">
+  <section id="how" style="padding:64px 0 48px;scroll-margin-top:88px">
+    <span style="display:block;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-accent);margin-bottom:12px">A straightforward workflow</span>
+    <h2 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:clamp(28px,3.5vw,38px);margin:0 0 8px">How it works</h2>
+    <p style="font-size:16px;color:color-mix(in srgb, var(--color-text) 78%, transparent);margin:0 0 32px">Know what you're building before you build it.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;border-top:1px solid var(--color-divider);padding-top:28px">
+      <div>
+        <div style="font-size:13px;color:var(--color-accent);margin-bottom:8px">01</div>
+        <h3 style="font-size:18px;margin:0 0 8px">Describe it</h3>
+        <p style="font-size:14.5px;color:color-mix(in srgb, var(--color-text) 78%, transparent);margin:0">Tell ModuleMint what you want your WordPress plugin to do.</p>
+      </div>
+      <div>
+        <div style="font-size:13px;color:var(--color-accent);margin-bottom:8px">02</div>
+        <h3 style="font-size:18px;margin:0 0 8px">Review it</h3>
+        <p style="font-size:14.5px;color:color-mix(in srgb, var(--color-text) 78%, transparent);margin:0">AI creates a structured plan showing exactly what will be generated.</p>
+      </div>
+      <div>
+        <div style="font-size:13px;color:var(--color-accent);margin-bottom:8px">03</div>
+        <h3 style="font-size:18px;margin:0 0 8px">Build &amp; download</h3>
+        <p style="font-size:14.5px;color:color-mix(in srgb, var(--color-text) 78%, transparent);margin:0">Generate your plugin, optionally validate it against WordPress, and download the ZIP.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card elev-sm" style="padding:32px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;margin-bottom:64px">
+    <div>
+      <span style="display:block;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-accent);margin-bottom:12px">A plan you can inspect</span>
+      <h2 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:28px;margin:0 0 12px">Built, not just generated</h2>
+      <p style="font-size:15px;line-height:1.6;color:color-mix(in srgb, var(--color-text) 80%, transparent);margin:0 0 12px">AI helps plan your plugin. Its source code comes from deterministic templates using your approved specification.</p>
+      <p style="font-size:15px;line-height:1.6;color:color-mix(in srgb, var(--color-text) 80%, transparent);margin:0">Choose Build &amp; Validate to run PHP and WordPress checks before downloading.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14.5px">
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-divider);padding-bottom:10px">✓ Structured PluginSpec validation</div>
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-divider);padding-bottom:10px"><span>✓ PHP syntax validation</span><span style="color:color-mix(in srgb, var(--color-text) 55%, transparent);font-size:12px">With Build &amp; Validate</span></div>
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-divider);padding-bottom:10px"><span>✓ WordPress installation test</span><span style="color:color-mix(in srgb, var(--color-text) 55%, transparent);font-size:12px">With Build &amp; Validate</span></div>
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-divider);padding-bottom:10px"><span>✓ WordPress activation test</span><span style="color:color-mix(in srgb, var(--color-text) 55%, transparent);font-size:12px">With Build &amp; Validate</span></div>
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--color-divider);padding-bottom:10px">✓ Saved plugin versions</div>
+      <div style="display:flex;justify-content:space-between">✓ Secure ZIP download</div>
+    </div>
+  </section>
+
+  <section id="features" style="padding-bottom:56px;scroll-margin-top:88px">
+    <span style="display:block;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-accent);margin-bottom:12px">What can you build?</span>
+    <h2 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:clamp(28px,3.5vw,38px);margin:0 0 32px">Practical building blocks for your WordPress site</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+      <div class="card"><div class="card-kicker">Shortcodes</div><div class="card-title">Reusable content</div><p class="card-body">Add reusable content to your pages and posts with a shortcode.</p></div>
+      <div class="card"><div class="card-kicker">Custom Post Types</div><div class="card-title">Own content type</div><p class="card-body">Give content such as staff profiles its own place in WordPress.</p></div>
+      <div class="card"><div class="card-kicker">Custom Fields</div><div class="card-title">Structured data</div><p class="card-body">Store the extra details your content needs, from names to job titles.</p></div>
+      <div class="card"><div class="card-kicker">Settings Pages</div><div class="card-title">Configurable</div><p class="card-body">Manage your plugin's options from a dedicated settings page.</p></div>
+      <div class="card"><div class="card-kicker">Scheduled Tasks</div><div class="card-title">Automated</div><p class="card-body">Set up recurring tasks using WordPress scheduling.</p></div>
+    </div>
+  </section>
+
+  <section style="padding-bottom:72px;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,0.8fr);gap:40px;align-items:center">
+    <div>
+      <h2 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:30px;margin:0 0 12px">Your plugins stay with you</h2>
+      <p style="font-size:15px;line-height:1.6;color:color-mix(in srgb, var(--color-text) 80%, transparent);max-width:44ch;margin:0">Every successful build is saved to My Plugins, where saved versions remain available to download.</p>
+    </div>
+    <div class="card elev-md" style="padding:16px;gap:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;color:color-mix(in srgb, var(--color-text) 70%, transparent)">My Plugins</span>
+        <span class="tag tag-outline">Example</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-top:1px solid var(--color-divider);padding-top:12px">
+        <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--color-accent-800);color:var(--color-accent-100);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading)">W</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-family:var(--font-heading)">Staff Directory</div>
+          <div style="font-size:12px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">v1.0.0 · Revision 1</div>
+        </div>
+        <span class="tag tag-accent">✓ Validated</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-divider);padding-top:12px">
+        <span style="font-size:13px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">WordPress plugin · ZIP</span>
+        <button type="button" class="btn btn-secondary">Download<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="transform:rotate(90deg)"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <hr class="hr">
+
+  <section style="padding:56px 0;text-align:left">
+    <h2 style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:clamp(28px,3.8vw,42px);margin:0 0 12px">Ready to build your first plugin?</h2>
+    <p style="font-size:16px;color:color-mix(in srgb, var(--color-text) 80%, transparent);margin:0 0 24px">Describe it. Review it. Download it.</p>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <button type="button" class="btn btn-primary" style="white-space:nowrap">Start Building<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="flex-shrink:0"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></button>
+      <span class="tag tag-accent">First 2 plugins free</span>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid var(--color-divider);padding:28px 0 40px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">
+    <div><span class="nav-brand" style="font-size:15px;margin-right:8px">ModuleMint</span>From your idea to your WordPress site.</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Refunds</a><a href="#">Support</a>
+      <a href="ModuleMint - Dashboard.dc.html">Dashboard</a>
+    </div>
+  </footer>
+</div>
+
+</x-dc>
+</body>
+</html>

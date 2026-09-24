@@ -46,6 +46,8 @@ public class ProviderKeyExposureTests : IClassFixture<WebApplicationFactory<Prog
 
     [Theory]
     [InlineData("/index.html")]
+    [InlineData("/index.js")]
+    [InlineData("/site.css")]
     [InlineData("/builder.html")]
     [InlineData("/login.html")]
     [InlineData("/register.html")]
@@ -56,6 +58,7 @@ public class ProviderKeyExposureTests : IClassFixture<WebApplicationFactory<Prog
         var client = _factory.CreateClient();
 
         var response = await client.GetAsync(path);
+        response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.DoesNotContain("apiKey", body, StringComparison.OrdinalIgnoreCase);

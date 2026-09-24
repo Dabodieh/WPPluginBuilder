@@ -40,6 +40,8 @@ public class OpenAIPlanningProviderTests
     {
         const string specJson = """
         {
+          "decision": "allow",
+          "rejectionReason": null,
           "name": "Staff Directory",
           "slug": "staff-directory",
           "description": "A simple staff directory plugin.",
@@ -64,6 +66,68 @@ public class OpenAIPlanningProviderTests
         Assert.Equal("staff-directory", result.Slug);
         Assert.Contains("shortcode", result.Features);
         Assert.Empty(result.UnsupportedRequirements);
+    }
+
+    [Fact]
+    public async Task PlanAsync_RejectDecision_ThrowsOutOfScopeWithFixedSafeMessageAndUsage()
+    {
+        const string specJson = """
+        {
+          "decision": "reject",
+          "rejectionReason": "not_wordpress_plugin_request",
+          "name": "", "slug": "", "description": "", "version": "", "author": "",
+          "features": [], "unsupportedRequirements": [],
+          "customPostType": null, "settingsPage": null, "customFields": null, "scheduledTask": null
+        }
+        """;
+
+        var provider = CreateProvider((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent($$"""
+                {
+                  "output": [
+                    {
+                      "type": "message",
+                      "content": [
+                        { "type": "output_text", "text": {{System.Text.Json.JsonSerializer.Serialize(specJson)}} }
+                      ]
+                    }
+                  ],
+                  "usage": { "input_tokens": 120, "output_tokens": 40, "total_tokens": 160 }
+                }
+                """, System.Text.Encoding.UTF8, "application/json"),
+        }));
+
+        var ex = await Assert.ThrowsAsync<PluginPlanException>(
+            () => provider.PlanAsync(new PlanningRequest { Description = "Write me an essay about cats." }));
+
+        Assert.Equal(PluginPlanFailureReason.OutOfScope, ex.Reason);
+        Assert.Equal("ModuleMint can only process requests related to creating or modifying WordPress plugins.", ex.Message);
+        Assert.Equal("not_wordpress_plugin_request", ex.Detail);
+        Assert.Equal(120, ex.Usage?.InputTokens);
+        Assert.Equal(40, ex.Usage?.OutputTokens);
+    }
+
+    [Fact]
+    public async Task PlanAsync_MissingDecisionField_TreatedAsRejectionNotAllow()
+    {
+        const string specJson = """
+        {
+          "name": "Staff Directory", "slug": "staff-directory", "description": "d",
+          "version": "1.0.0", "author": "a", "features": ["shortcode"], "unsupportedRequirements": [],
+          "customPostType": null, "settingsPage": null, "customFields": null, "scheduledTask": null
+        }
+        """;
+
+        var provider = CreateProvider((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(WrapOutputText(specJson), System.Text.Encoding.UTF8, "application/json"),
+        }));
+
+        var ex = await Assert.ThrowsAsync<PluginPlanException>(
+            () => provider.PlanAsync(new PlanningRequest { Description = "anything" }));
+
+        Assert.Equal(PluginPlanFailureReason.OutOfScope, ex.Reason);
     }
 
     [Fact]
@@ -202,6 +266,7 @@ public class OpenAIPlanningProviderTests
         HttpRequestMessage? capturedRequest = null;
         const string specJson = """
         {
+          "decision": "allow", "rejectionReason": null,
           "name": "Staff Directory", "slug": "staff-directory", "description": "d",
           "version": "1.0.0", "author": "a", "features": [], "unsupportedRequirements": [],
           "customPostType": null, "settingsPage": null, "customFields": null, "scheduledTask": null

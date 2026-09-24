@@ -22,7 +22,7 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
     {
         var client = NewClient(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/account/register", new
+        var response = await client.PostJsonWithCsrfAsync("/api/account/register", new
         {
             email = $"user-{Guid.NewGuid()}@example.com",
             password = "Str0ng!Passw0rd",
@@ -38,8 +38,8 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
         var email = $"dup-{Guid.NewGuid()}@example.com";
         var request = new { email, password = "Str0ng!Passw0rd" };
 
-        await client.PostAsJsonAsync("/api/account/register", request);
-        var second = await client.PostAsJsonAsync("/api/account/register", request);
+        await client.PostJsonWithCsrfAsync("/api/account/register", request);
+        var second = await client.PostJsonWithCsrfAsync("/api/account/register", request);
 
         Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
     }
@@ -50,10 +50,10 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
         var client = NewClient(_factory);
         var email = $"login-{Guid.NewGuid()}@example.com";
         var password = "Str0ng!Passw0rd";
-        await client.PostAsJsonAsync("/api/account/register", new { email, password });
-        await client.PostAsync("/api/account/logout", null);
+        await client.PostJsonWithCsrfAsync("/api/account/register", new { email, password });
+        await client.PostWithCsrfAsync("/api/account/logout", null);
 
-        var response = await client.PostAsJsonAsync("/api/account/login", new { email, password });
+        var response = await client.PostJsonWithCsrfAsync("/api/account/login", new { email, password });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -63,10 +63,10 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
     {
         var client = NewClient(_factory);
         var email = $"wrongpw-{Guid.NewGuid()}@example.com";
-        await client.PostAsJsonAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
-        await client.PostAsync("/api/account/logout", null);
+        await client.PostJsonWithCsrfAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
+        await client.PostWithCsrfAsync("/api/account/logout", null);
 
-        var response = await client.PostAsJsonAsync("/api/account/login", new { email, password = "wrong-password" });
+        var response = await client.PostJsonWithCsrfAsync("/api/account/login", new { email, password = "wrong-password" });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -76,9 +76,9 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
     {
         var client = NewClient(_factory);
         var email = $"logout-{Guid.NewGuid()}@example.com";
-        await client.PostAsJsonAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
+        await client.PostJsonWithCsrfAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
 
-        await client.PostAsync("/api/account/logout", null);
+        await client.PostWithCsrfAsync("/api/account/logout", null);
         var meResponse = await client.GetAsync("/api/account/me");
 
         Assert.Equal(HttpStatusCode.Unauthorized, meResponse.StatusCode);
@@ -89,7 +89,7 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
     {
         var client = NewClient(_factory);
         var email = $"me-{Guid.NewGuid()}@example.com";
-        await client.PostAsJsonAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
+        await client.PostJsonWithCsrfAsync("/api/account/register", new { email, password = "Str0ng!Passw0rd" });
 
         var response = await client.GetAsync("/api/account/me");
 
