@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Account — ModuleMint</title>
+<link rel="icon" type="image/png" href="brand/favicon.png" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+<header class="app-header"><nav id="appNav" data-active="account" aria-label="Main navigation"></nav></header>
+
+<main class="app-shell page" id="account" hidden>
+<section class="page-header">
+  <h1>Account</h1>
+  <p class="page-lead">Manage your login and security details.</p>
+</section>
+
+<section class="card elev-sm content-card">
+  <h2 class="card-kicker">Email</h2>
+  <p id="accountEmail" class="stat-value-sm" role="status">Loading&hellip;</p>
+  <p id="verifiedStatus" role="status"></p>
+  <button type="button" id="resendVerificationBtn" class="btn btn-secondary" hidden>Resend verification email</button>
+  <p id="resendMessage" role="status" hidden></p>
+
+  <form id="changeEmailForm" novalidate>
+    <h3 class="card-title">Change email</h3>
+    <div class="field">
+      <label for="newEmail">New email</label>
+      <input type="email" id="newEmail" autocomplete="email" required />
+    </div>
+    <div class="field">
+      <label for="emailCurrentPassword">Current password</label>
+      <input type="password" id="emailCurrentPassword" autocomplete="current-password" required />
+    </div>
+    <button type="submit" id="changeEmailBtn" class="btn btn-primary">Update email</button>
+  </form>
+  <div id="emailFormNotice" class="notice ok" role="status" hidden></div>
+  <div id="emailFormError" class="notice error" role="alert" hidden></div>
+</section>
+
+<section class="card elev-sm content-card">
+  <h2 class="card-kicker">Password</h2>
+  <p>Change your password.</p>
+
+  <form id="changePasswordForm" novalidate>
+    <div class="field">
+      <label for="currentPassword">Current password</label>
+      <input type="password" id="currentPassword" autocomplete="current-password" required />
+    </div>
+    <div class="field">
+      <label for="newPassword">New password</label>
+      <input type="password" id="newPassword" autocomplete="new-password" required />
+      <p class="password-hint" id="passwordHint">Loading password requirements&hellip;</p>
+    </div>
+    <div class="field">
+      <label for="confirmNewPassword">Confirm new password</label>
+      <input type="password" id="confirmNewPassword" autocomplete="new-password" required />
+    </div>
+    <button type="submit" id="changePasswordBtn" class="btn btn-primary">Update password</button>
+  </form>
+  <div id="passwordFormNotice" class="notice ok" role="status" hidden></div>
+  <div id="passwordFormError" class="notice error" role="alert" hidden></div>
+</section>
+
+<section class="card elev-sm content-card">
+  <h2 class="card-kicker">Sessions</h2>
+  <p>Sign out of ModuleMint on all devices.</p>
+  <button type="button" id="signOutAllBtn" class="btn btn-secondary">Sign out all sessions</button>
+  <div id="signOutAllConfirm" hidden>
+    <p>This will sign you out on all devices.</p>
+    <button type="button" id="signOutAllConfirmBtn" class="btn btn-primary">Sign out everywhere</button>
+    <button type="button" id="signOutAllCancelBtn" class="btn btn-ghost">Cancel</button>
+  </div>
+  <div id="signOutAllNotice" class="notice ok" role="status" hidden></div>
+  <div id="signOutAllError" class="notice error" role="alert" hidden></div>
+</section>
+</main>
+<script src="api.js"></script>
+<script src="nav.js"></script>
+<script src="account.js"></script>
+</body>
+</html>

@@ -21,4 +21,7 @@ public sealed class SecurityOptions
 
     /// <summary>Per-account (authenticated endpoint only) - protects the resend-verification-email endpoint against email bombing/automation.</summary>
     public int EmailVerificationResendPerFiveMinutes { get; set; } = 3;
+
+    /// <summary>Per-account (authenticated endpoints only) - protects change-password and change-email against credential-stuffing/automation.</summary>
+    public int AccountSecurityPerFiveMinutes { get; set; } = 5;
 }

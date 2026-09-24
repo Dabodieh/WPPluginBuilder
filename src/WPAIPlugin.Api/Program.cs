@@ -55,7 +55,7 @@ builder.Services.AddOptions<SecurityOptions>().BindConfiguration("Security")
         && o.BuildsPerMinute > 0
         && o.ValidatedBuildsPerMinute > 0 && o.AccountRequestsPerFiveMinutes > 0
         && o.CheckoutPerMinute > 0 && o.PromoCodePerMinute > 0 && o.PasswordRecoveryPerFiveMinutes > 0
-        && o.EmailVerificationResendPerFiveMinutes > 0,
+        && o.EmailVerificationResendPerFiveMinutes > 0 && o.AccountSecurityPerFiveMinutes > 0,
         "Security request limits must be positive.").ValidateOnStart();
 builder.Services.AddOptions<WPAIPlugin.Api.Security.AbuseOptions>().BindConfiguration("Abuse")
     .Validate(o => o.MaxAiCostUsdMicrosPerUserPerDay > 0, "Abuse cost ceilings must be positive.")
@@ -96,6 +96,12 @@ builder.Services.AddOptions<RateLimiterOptions>().Configure<IOptions<SecurityOpt
     options.AddPolicy("emailVerificationResend", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = limits.EmailVerificationResendPerFiveMinutes, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
+    // Authenticated-only endpoints (change-password, change-email) - per-
+    // account, protects against credential-stuffing/automation on the
+    // account-security surface.
+    options.AddPolicy("accountSecurity", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = limits.AccountSecurityPerFiveMinutes, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
 });
 // The validated flag is known only after model binding. Use the built-in
 // partitioned limiter there, in addition to the common build route limiter.

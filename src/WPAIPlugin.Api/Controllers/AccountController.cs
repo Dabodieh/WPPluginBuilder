@@ -191,6 +191,43 @@ public sealed class AccountController : ControllerBase
     }
 
     /// <summary>
+    /// Account-page-specific view of the current user (Account Management
+    /// milestone) - deliberately separate from Me() above, which nav.js still
+    /// uses for the shared shell. Never returns the Identity UserId, security
+    /// stamp, concurrency stamp, claims, or any cookie/token information.
+    /// </summary>
+    [HttpGet("")]
+    [Authorize]
+    public async Task<IActionResult> GetAccount()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+
+        return Ok(new { email = user.Email, emailConfirmed = user.EmailConfirmed });
+    }
+
+    /// <summary>
+    /// Reads the actually-configured Identity password policy rather than
+    /// duplicating fixed values in client-side JavaScript, which could drift
+    /// from the real backend configuration. Static, non-sensitive, no
+    /// per-user state - no rate limit needed.
+    /// </summary>
+    [HttpGet("password-policy")]
+    public IActionResult PasswordPolicy([FromServices] IOptions<IdentityOptions> identityOptions)
+    {
+        var policy = identityOptions.Value.Password;
+        return Ok(new
+        {
+            requiredLength = policy.RequiredLength,
+            requireDigit = policy.RequireDigit,
+            requireLowercase = policy.RequireLowercase,
+            requireUppercase = policy.RequireUppercase,
+            requireNonAlphanumeric = policy.RequireNonAlphanumeric,
+            requiredUniqueChars = policy.RequiredUniqueChars,
+        });
+    }
+
+    /// <summary>
     /// Always returns the same generic response, whether or not the email
     /// belongs to a registered account - never reveals account existence,
     /// lockout status, or any other account state through the response.
@@ -344,6 +381,159 @@ public sealed class AccountController : ControllerBase
     }
 
     /// <summary>
+    /// Requires the current password (never trusts the session alone for a
+    /// credential change) and delegates entirely to UserManager - no manual
+    /// password hashing anywhere. Re-signs-in via SignInManager afterward so
+    /// the auth cookie's security stamp stays valid for the current session
+    /// (ChangePasswordAsync rotates the security stamp).
+    /// </summary>
+    [Authorize]
+    [EnableRateLimiting("accountSecurity")]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return BadRequest(new { error = "Current password and a new password are required." });
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            return BadRequest(new { error = "New password and confirmation do not match." });
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+
+        var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            if (result.Errors.Any(e => e.Code is "PasswordMismatch"))
+            {
+                return BadRequest(new { error = "Current password is incorrect." });
+            }
+            // Password-policy errors are the same safe, descriptive text
+            // already shown at registration - never an internal Identity/
+            // security detail, never the submitted password values.
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+        }
+
+        await _signInManager.RefreshSignInAsync(user);
+        return Ok(new { success = true });
+    }
+
+    /// <summary>
+    /// Starts Identity's secure change-email flow (Account Management
+    /// milestone): verifies the current password, then sends a confirmation
+    /// link to the NEW address only. The login email is never overwritten
+    /// here - ConfirmEmailChange below performs the actual change once the
+    /// new address is confirmed. Requires the current password so an
+    /// attacker with a hijacked session cannot silently redirect the account
+    /// to an address they control. Swallows an already-taken new email the
+    /// same way ForgotPassword swallows an unknown one, so this endpoint
+    /// never reveals whether an email address belongs to another account.
+    /// </summary>
+    [Authorize]
+    [EnableRateLimiting("accountSecurity")]
+    [HttpPost("change-email")]
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
+    {
+        const string genericMessage = "Check your new email address for a confirmation link to finish changing your email.";
+
+        if (string.IsNullOrWhiteSpace(request.NewEmail) || string.IsNullOrWhiteSpace(request.CurrentPassword))
+        {
+            return BadRequest(new { error = "A new email address and your current password are required." });
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+
+        if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
+        {
+            return BadRequest(new { error = "Current password is incorrect." });
+        }
+
+        var newEmail = request.NewEmail.Trim();
+        try
+        {
+            var existing = await _userManager.FindByEmailAsync(newEmail);
+            if (existing is null || existing.Id == user.Id)
+            {
+                var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+                var confirmUrl = BuildChangeEmailUrl(user.Email!, newEmail, token);
+                await _emailSender.SendEmailChangeConfirmationAsync(newEmail, confirmUrl, HttpContext.RequestAborted);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Email change confirmation send failed. Failure category: {FailureType}.", ex.GetType().Name);
+        }
+
+        return Ok(new { message = genericMessage });
+    }
+
+    /// <summary>
+    /// Completes Identity's change-email token flow. Deliberately
+    /// unauthenticated (like ConfirmEmail above) - the new address may be
+    /// opened in a different browser/session than the one that requested the
+    /// change. Locates the account by its still-current login email, not the
+    /// new one, since the token is bound to (user, newEmail). Keeps
+    /// UserName in sync with Email, matching how this app creates accounts
+    /// at registration.
+    /// </summary>
+    [EnableRateLimiting("passwordRecovery")]
+    [HttpPost("confirm-email-change")]
+    public async Task<IActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest request)
+    {
+        const string invalidLinkMessage = "This confirmation link is invalid or has expired. Please request a new one.";
+
+        if (string.IsNullOrWhiteSpace(request.CurrentEmail) || string.IsNullOrWhiteSpace(request.NewEmail)
+            || string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(new { error = invalidLinkMessage });
+        }
+
+        var user = await _userManager.FindByEmailAsync(request.CurrentEmail);
+        if (user is null)
+        {
+            return BadRequest(new { error = invalidLinkMessage });
+        }
+
+        var result = await _userManager.ChangeEmailAsync(user, request.NewEmail, request.Token);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { error = invalidLinkMessage });
+        }
+
+        await _userManager.SetUserNameAsync(user, request.NewEmail);
+        await _signInManager.RefreshSignInAsync(user);
+
+        return Ok(new { message = "Your email address has been updated." });
+    }
+
+    /// <summary>
+    /// Invalidates every outstanding auth cookie for this account by
+    /// rotating the Identity security stamp - ASP.NET Core Identity's
+    /// built-in SecurityStampValidator (wired automatically by AddIdentity)
+    /// then rejects any other session's cookie on its next validation pass.
+    /// No custom session-tracking table. The current request is also signed
+    /// out immediately rather than waiting for that revalidation.
+    /// </summary>
+    [Authorize]
+    [EnableRateLimiting("accountSecurity")]
+    [HttpPost("signout-all")]
+    public async Task<IActionResult> SignOutAll()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+
+        await _userManager.UpdateSecurityStampAsync(user);
+        await _signInManager.SignOutAsync();
+
+        return Ok(new { success = true });
+    }
+
+    /// <summary>
     /// Built server-side from App:PublicBaseUrl only - request Host/scheme/
     /// any browser-supplied origin is never trusted for this, since an
     /// attacker who controlled it could redirect a real reset link to a
@@ -371,6 +561,21 @@ public sealed class AccountController : ControllerBase
             _logger.LogError("App:PublicBaseUrl is not configured - cannot build an email confirmation URL.");
         }
         return $"{baseUrl}/confirm-email.html?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+    }
+
+    /// <summary>
+    /// Same trusted-origin rule as BuildResetUrl - App:PublicBaseUrl only,
+    /// never a browser-supplied Host/scheme/origin.
+    /// </summary>
+    private string BuildChangeEmailUrl(string currentEmail, string newEmail, string token)
+    {
+        var baseUrl = (_appOptions.PublicBaseUrl ?? string.Empty).TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            _logger.LogError("App:PublicBaseUrl is not configured - cannot build an email change confirmation URL.");
+        }
+        return $"{baseUrl}/confirm-email-change.html?currentEmail={Uri.EscapeDataString(currentEmail)}"
+            + $"&newEmail={Uri.EscapeDataString(newEmail)}&token={Uri.EscapeDataString(token)}";
     }
 }
 
@@ -402,5 +607,25 @@ public sealed class ResetPasswordRequest
 public sealed class ConfirmEmailRequest
 {
     public string? Email { get; set; }
+    public string? Token { get; set; }
+}
+
+public sealed class ChangePasswordRequest
+{
+    public string? CurrentPassword { get; set; }
+    public string? NewPassword { get; set; }
+    public string? ConfirmPassword { get; set; }
+}
+
+public sealed class ChangeEmailRequest
+{
+    public string? NewEmail { get; set; }
+    public string? CurrentPassword { get; set; }
+}
+
+public sealed class ConfirmEmailChangeRequest
+{
+    public string? CurrentEmail { get; set; }
+    public string? NewEmail { get; set; }
     public string? Token { get; set; }
 }

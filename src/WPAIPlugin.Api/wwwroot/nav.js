@@ -23,6 +23,7 @@
           <div class="nav-account-menu">
             <p>Signed in as</p>
             <p class="nav-account-email" id="navEmail">&hellip;</p>
+            <a class="btn btn-secondary" href="account.html">Account</a>
             <button type="button" class="btn btn-secondary" id="navLogout">Log out</button>
           </div>
         </details>

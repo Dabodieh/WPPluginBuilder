@@ -13,6 +13,8 @@ public sealed class FakeTransactionalEmailSender : ITransactionalEmailSender
 
     public List<(string ToEmail, string ConfirmUrl)> EmailConfirmationsSent { get; } = [];
 
+    public List<(string ToEmail, string ConfirmUrl)> EmailChangeConfirmationsSent { get; } = [];
+
     public Task SendPasswordResetEmailAsync(string toEmail, string resetUrl, CancellationToken cancellationToken = default)
     {
         PasswordResetsSent.Add((toEmail, resetUrl));
@@ -22,6 +24,12 @@ public sealed class FakeTransactionalEmailSender : ITransactionalEmailSender
     public Task SendEmailConfirmationAsync(string toEmail, string confirmUrl, CancellationToken cancellationToken = default)
     {
         EmailConfirmationsSent.Add((toEmail, confirmUrl));
+        return Task.CompletedTask;
+    }
+
+    public Task SendEmailChangeConfirmationAsync(string toEmail, string confirmUrl, CancellationToken cancellationToken = default)
+    {
+        EmailChangeConfirmationsSent.Add((toEmail, confirmUrl));
         return Task.CompletedTask;
     }
 }

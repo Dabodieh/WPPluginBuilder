@@ -29,6 +29,7 @@ public sealed class AccountTestFactory : WebApplicationFactory<Program>
                 o.PlanningPerMinute = 1000; o.BuildsPerMinute = 1000; o.ValidatedBuildsPerMinute = 1000;
                 o.PasswordRecoveryPerFiveMinutes = 1000;
                 o.EmailVerificationResendPerFiveMinutes = 1000;
+                o.AccountSecurityPerFiveMinutes = 1000;
             });
             services.PostConfigure<WPAIPlugin.Api.Configuration.AppOptions>(o => o.PublicBaseUrl = "https://modulemint.test");
             services.RemoveAll<WPAIPlugin.Api.Email.ITransactionalEmailSender>();

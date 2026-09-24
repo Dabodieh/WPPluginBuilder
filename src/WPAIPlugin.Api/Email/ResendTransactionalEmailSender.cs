@@ -74,4 +74,32 @@ public sealed class ResendTransactionalEmailSender(
             throw;
         }
     }
+
+    public async Task SendEmailChangeConfirmationAsync(string toEmail, string confirmUrl, CancellationToken cancellationToken = default)
+    {
+        var message = new EmailMessage
+        {
+            From = $"{_emailOptions.FromName} <{_emailOptions.FromAddress}>",
+            Subject = "Confirm your new ModuleMint email",
+            TextBody = "A request was made to change the email address on your ModuleMint account to this address.\n\n"
+                + $"Confirm this email address: {confirmUrl}\n\n"
+                + "If you didn't request this, you can safely ignore this email - your account's email will not change.",
+            HtmlBody = "<p>A request was made to change the email address on your ModuleMint account to this address.</p>"
+                + $"<p><a href=\"{System.Net.WebUtility.HtmlEncode(confirmUrl)}\">Confirm this email address</a></p>"
+                + "<p>If you didn't request this, you can safely ignore this email - your account's email will not change.</p>",
+        };
+        message.To.Add(toEmail);
+
+        try
+        {
+            await resend.EmailSendAsync(message);
+        }
+        catch (Exception ex)
+        {
+            // Never log the recipient-specific confirmation URL/token - only
+            // that sending failed and its exception category.
+            logger.LogError("Email change confirmation send failed. Failure category: {FailureType}.", ex.GetType().Name);
+            throw;
+        }
+    }
 }

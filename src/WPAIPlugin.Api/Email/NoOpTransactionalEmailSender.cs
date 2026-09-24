@@ -22,4 +22,10 @@ public sealed class NoOpTransactionalEmailSender(ILogger<NoOpTransactionalEmailS
         logger.LogInformation("Email confirmation requested but no transactional email sender is configured (Resend:ApiKey is blank) - no email was sent.");
         return Task.CompletedTask;
     }
+
+    public Task SendEmailChangeConfirmationAsync(string toEmail, string confirmUrl, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Email change confirmation requested but no transactional email sender is configured (Resend:ApiKey is blank) - no email was sent.");
+        return Task.CompletedTask;
+    }
 }
