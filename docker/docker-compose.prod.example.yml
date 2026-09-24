@@ -74,7 +74,7 @@ services:
       # in production (see README "Docker validation in production"):
       # - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
     # No container-level healthcheck here: the aspnet:8.0 base image has no
     # curl/wget to probe GET /health/live with. Point your reverse proxy or
     # orchestrator's own HTTP health check at that path instead (it needs no
