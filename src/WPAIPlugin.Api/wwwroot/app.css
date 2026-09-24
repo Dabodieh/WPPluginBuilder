@@ -370,6 +370,14 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
 }
 .nav-account-menu .btn { width:100%; justify-content:flex-start; }
 
+.nav-toggle {
+  display:none; align-items:center; justify-content:center;
+  width:36px; height:36px; margin-right:4px; flex-shrink:0;
+  color:var(--color-text); background:transparent; border:1px solid var(--color-divider);
+  border-radius:var(--radius-md); cursor:pointer;
+}
+.nav-toggle:hover { background:color-mix(in srgb, var(--color-text) 7%, transparent); }
+
 /* Brand mark kept on auth/legal pages, restyled as the accent swatch. */
 .wordmark {
   display:inline-flex; align-items:center; gap:10px; color:var(--color-text);
@@ -394,6 +402,11 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
   font-size:22px; line-height:1.2; margin-bottom:12px;
 }
 .card-action { align-self:flex-start; }
+/* Buttons sitting directly in a card/panel (not inside a form or a row
+   wrapper) default to flex-stretch and go full-width - opt back out unless
+   .btn-block explicitly asks for full width. */
+.card > .btn, .panel > .btn { align-self:flex-start; }
+.card > .btn-block, .panel > .btn-block { align-self:stretch; }
 .verify-banner {
   flex-direction:row; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
   padding:16px 20px; margin-bottom:24px;
@@ -511,8 +524,17 @@ dl.feature dd { margin:4px 0 0; color:var(--color-text); }
 .footer-links a:hover { color:var(--color-accent); }
 
 @media (max-width:767px) {
-  .nav-links-group { display:none; }
-  .nav-credits { display:none; }
+  .nav { position:relative; }
+  .nav-toggle { display:inline-flex; }
+  .nav-links-group {
+    display:none; flex-direction:column; align-items:stretch; gap:var(--space-2);
+    position:absolute; left:0; right:0; top:100%; z-index:5;
+    padding:12px clamp(20px, 5vw, 32px) 16px; margin-inline:calc(-1 * clamp(20px, 5vw, 32px));
+    background:var(--color-surface); box-shadow:var(--shadow-md);
+  }
+  .nav-links-group.nav-links-open { display:flex; }
+  .nav-links-group a { padding-block:6px; }
+  .nav-credits { align-self:flex-start; margin-top:4px; }
   .field-grid { grid-template-columns:1fr; }
   .verify-banner-actions { align-items:flex-start; }
 }

@@ -10,14 +10,17 @@
     return `
       <div class="app-shell nav">
         <a class="nav-brand" href="/"><img class="brand-mark" src="brand/logo-mark-dark.png" alt="" width="22" height="22">Module<span class="brand-mint">Mint</span></a>
-        <span class="nav-links-group">
+        <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinksGroup" aria-label="Toggle navigation menu">
+          <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg>
+        </button>
+        <span class="nav-links-group" id="navLinksGroup">
           ${link("dashboard.html", "Dashboard", "dashboard")}
           ${link("builder.html", "Builder", "builder")}
           ${link("myplugins.html", "My Plugins", "myplugins")}
           ${link("billing.html", "Billing", "billing")}
           <span id="navAdminLink" hidden>${link("admin.html", "Admin", "admin")}</span>
+          <span class="tag tag-outline nav-credits" id="navCredits" role="status">&hellip; credits</span>
         </span>
-        <span class="tag tag-outline nav-credits" id="navCredits" role="status">&hellip; credits</span>
         <details class="nav-account">
           <summary class="btn btn-ghost">Account <span aria-hidden="true">&#9662;</span></summary>
           <div class="nav-account-menu">
@@ -57,6 +60,13 @@
     } catch {
       document.getElementById("navCredits").textContent = "Credits unavailable";
     }
+
+    const navToggle = document.getElementById("navToggle");
+    const navLinksGroup = document.getElementById("navLinksGroup");
+    navToggle.addEventListener("click", () => {
+      const open = navLinksGroup.classList.toggle("nav-links-open");
+      navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
 
     document.getElementById("navLogout").addEventListener("click", async () => {
       try {

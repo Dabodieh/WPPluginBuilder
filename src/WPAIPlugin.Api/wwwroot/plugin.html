@@ -13,13 +13,18 @@
 
 <main class="container-medium page">
 <p class="auth-back-link back-link"><a href="myplugins.html">&larr; My Plugins</a></p>
-<h1 id="pluginName">Plugin</h1>
-<p class="page-lead detail-meta" id="pluginMeta"></p>
+<section class="page-header-row">
+  <div>
+    <h1 id="pluginName">Plugin</h1>
+    <p class="page-lead detail-meta" id="pluginMeta"></p>
+  </div>
+  <a id="downloadLatestLink" href="#" class="btn btn-primary btn-download" hidden>Download Latest<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+</section>
 
 <div id="notFound" class="notice error" role="alert" hidden>Plugin not found.</div>
 
 <section class="panel versions-panel" id="versionsCard" hidden>
-  <h2 class="panel-title">Versions</h2>
+  <h2 class="panel-title">Version History</h2>
   <div id="versionList" class="version-list"></div>
 </section>
 </main>
