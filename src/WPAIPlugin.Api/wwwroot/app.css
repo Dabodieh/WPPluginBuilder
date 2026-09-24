@@ -24,6 +24,7 @@
   --color-accent:#9184d9;
   --color-accent-2:#a7a1db;
   --color-divider:color-mix(in srgb, #e9e9ed 16%, transparent);
+  --color-brand-mint:#0be18b; /* ModuleMint logo green, from brand/logo-mark.png */
 
   --color-neutral-100:#f3f5fe;
   --color-neutral-200:#e4e7f5;
@@ -348,6 +349,7 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
   padding-block:16px;
 }
 .nav-brand {
+  display:inline-flex; align-items:center; gap:8px;
   font-family:var(--font-heading); font-weight:var(--font-heading-weight);
   font-size:18px; margin-right:auto;
 }
@@ -376,10 +378,9 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
 }
 .wordmark:hover { color:var(--color-text); }
 .brand-mark {
-  width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center;
-  border-radius:var(--radius-sm); background:var(--color-accent-800); color:var(--color-accent-100);
-  font-size:15px; line-height:1;
+  width:22px; height:22px; display:inline-block; object-fit:contain; flex-shrink:0;
 }
+.brand-mint { color:var(--color-brand-mint); }
 
 /* — dashboard — */
 .stat-grid {

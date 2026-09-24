@@ -9,7 +9,7 @@
     };
     return `
       <div class="app-shell nav">
-        <a class="nav-brand" href="/">ModuleMint</a>
+        <a class="nav-brand" href="/"><img class="brand-mark" src="brand/logo-mark-dark.png" alt="" width="22" height="22">Module<span class="brand-mint">Mint</span></a>
         <span class="nav-links-group">
           ${link("dashboard.html", "Dashboard", "dashboard")}
           ${link("builder.html", "Builder", "builder")}
