@@ -57,7 +57,7 @@ public class CreditApiTests
         using var client = configured.CreateClient();
         (await client.PostJsonWithCsrfAsync("/api/account/register", new { email = "config@example.com", password = Password })).EnsureSuccessStatusCode();
         var credits = await client.GetFromJsonAsync<JsonElement>("/api/credits?userId=someone-else");
-        Assert.Equal(new[] { "balance", "freeBuildsRemaining", "standardBuildCost", "validatedBuildCost" }, credits.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(new[] { "balance", "freeBuildsRemaining", "standardBuildCost", "validatedBuildCost", "validationEnabled" }, credits.EnumerateObject().Select(p => p.Name));
         Assert.Equal(12, credits.GetProperty("balance").GetInt32());
         Assert.Equal(3, credits.GetProperty("standardBuildCost").GetInt32());
         Assert.Equal(5, credits.GetProperty("validatedBuildCost").GetInt32());

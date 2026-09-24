@@ -911,3 +911,265 @@ Rolling back a bad deploy: redeploy the previous image/build. Only roll
 back a migration if it was written to be reversible and you understand
 the data implications - the existing credit-ledger and artifact-storage
 migrations are treated as forward-only in this codebase.
+
+---
+
+# Plesk + Docker Deployment
+
+The concrete, current deployment target: a single existing Plesk server
+with Docker available, hosting `https://modulemint.co.uk`. Plesk owns the
+public domain, HTTPS, and the reverse proxy; Docker Compose owns the app
+and its database. This section is written so another administrator can
+follow it without reading the rest of this file first.
+
+```
+Internet
+   ↓
+https://modulemint.co.uk
+   ↓
+Plesk (HTTPS termination + reverse proxy)
+   ↓
+127.0.0.1:18473
+   ↓
+modulemint container (ASP.NET Core, port 8080 internally)
+   ↓
+postgres container (internal network only, no public port)
+```
+
+## Prerequisites
+
+- Docker + Docker Compose available on the Plesk server.
+- A checkout of this repository on the server (e.g. `git clone`, or however
+  releases normally reach this host).
+- Plesk configured to serve `https://modulemint.co.uk` (certificate,
+  HTTP→HTTPS redirect) and able to reverse-proxy to a local port - see
+  "Plesk reverse proxy configuration" below.
+- Real production values ready for: PostgreSQL password, OpenAI API key,
+  Resend API key, support/sender email addresses.
+
+## Files involved
+
+| File | Purpose |
+| --- | --- |
+| `Dockerfile` | Multi-stage build → the `modulemint` production image (same image used for local dev/testing of prod config). |
+| `.dockerignore` | Keeps `.git`, dev secrets, tests, and docs out of the build context/image. |
+| `docker/docker-compose.production.yml` | The two-service stack: `modulemint` + `postgres`. Committed - contains no secrets, only `${VAR}` references. |
+| `.env.production.example` | Committed template. Copy to `.env.production` on the server and fill in real values. |
+| `.env.production` | **Not committed** (gitignored). Real secrets live only here, on the server. |
+| `scripts/Deploy-Production.sh` | Optional helper that runs the sequence below with a backup confirmation prompt. |
+
+## First-time setup
+
+1. **Clone the repository** onto the server, in whatever location you
+   normally keep deployed apps.
+2. **Create the environment file:**
+   ```
+   cp .env.production.example .env.production
+   ```
+   Edit `.env.production` and fill in: `POSTGRES_PASSWORD`,
+   `OPENAI_API_KEY`, `RESEND_API_KEY`, `SUPPORT_EMAIL`,
+   `EMAIL_FROM_ADDRESS`. Leave `APP_PUBLIC_BASE_URL` as
+   `https://modulemint.co.uk` and `VALIDATION_ENABLED=false` (see
+   "Why Build & Validate is off" below). Never commit this file.
+3. **Build and start:**
+   ```
+   docker compose --env-file .env.production -f docker/docker-compose.production.yml -p modulemint up -d --build
+   ```
+   This starts `postgres` (waits for its healthcheck) then `modulemint`.
+   PostgreSQL is not published on any host port - only `modulemint` can
+   reach it, over the internal compose network as host `postgres`.
+4. **Apply database migrations** - not automatic on startup by design (see
+   "Database migrations" above). From the server, with the .NET 8 SDK
+   available (or using the throwaway build-stage container shown there):
+   ```
+   docker build --target build -t modulemint-api:migrate .
+   docker run --rm --network modulemint_default \
+     -e ConnectionStrings__DefaultConnection="Host=postgres;Port=5432;Database=<POSTGRES_DB>;Username=<POSTGRES_USER>;Password=<POSTGRES_PASSWORD>" \
+     modulemint-api:migrate \
+     bash -c "dotnet tool install --global dotnet-ef --version 8.* && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --project src/WPAIPlugin.Api --startup-project src/WPAIPlugin.Api"
+   ```
+5. **Confirm the app is up**, from the server itself (this port is not
+   reachable from outside the host):
+   ```
+   curl http://127.0.0.1:18473/health/ready
+   ```
+6. **Configure the Plesk reverse proxy** (below), then visit
+   `https://modulemint.co.uk`.
+7. **Register the intended admin account**, then set
+   `ADMIN_BOOTSTRAP_EMAIL` in `.env.production` to that address and
+   `docker compose ... up -d modulemint` (recreates just that service) to
+   apply it - see "Admin bootstrap" above for the full mechanism.
+
+`scripts/Deploy-Production.sh` automates steps 3-5 (build, migrate, start,
+wait for health) with a backup-confirmation prompt - read it before first
+use; it still requires `.env.production` to already exist.
+
+## Plesk reverse proxy configuration
+
+In the Plesk domain settings for `modulemint.co.uk`, under **Apache & nginx
+Settings** (or the "Additional nginx directives" box, depending on Plesk
+version), add a proxy pass to the local app port:
+
+```
+location / {
+    proxy_pass http://127.0.0.1:18473;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+}
+```
+
+(Exact UI labels vary by Plesk version - the goal is any config that proxies
+`https://modulemint.co.uk` to `http://127.0.0.1:18473` and forwards those
+three headers.) Enable **SSL/TLS support** with Let's Encrypt for the
+domain, and Plesk's own **"Permanent SEO-safe 301 redirect from HTTP to
+HTTPS"** option. If `www.modulemint.co.uk` is also pointed at this site,
+configure Plesk's own redirect from `www` to the bare domain (or vice
+versa) - pick one canonical form and redirect the other to it.
+
+**Trusted-proxy configuration - read this before changing it.**
+`docker-compose.production.yml` sets both `ForwardedHeaders__KnownProxies`
+(`127.0.0.1`/`::1`) *and* `ForwardedHeaders__KnownNetworks__0`
+(`172.28.90.0/24`, this compose project's own fixed bridge subnet - see the
+`networks:` block at the bottom of that file). Both are needed: when Plesk
+(running directly on the host, not in a container) connects to
+`127.0.0.1:18473`, Docker's own NAT rewrites that connection's source
+address by the time it reaches the container - verified locally, the
+container sees the project's bridge gateway IP, **not** `127.0.0.1`. Trusting
+only `KnownProxies: 127.0.0.1` therefore silently never matches, forwarded
+headers are ignored, `Request.Scheme` stays `http`, and every
+CSRF-protected POST (register, login, every build) fails with a 500 - this
+was caught and fixed during this milestone's local testing, not something
+to reintroduce by "simplifying" this back to just `KnownProxies`.
+
+The subnet is pinned explicitly (rather than trusting Docker's much wider
+default bridge range, `172.16.0.0/12`) so trust is scoped to exactly this
+project's own network - not every other container on this shared Plesk
+host. If you ever change the compose project name or add another service
+to this stack's network, keep the `networks.default.ipam` subnet and the
+`KnownNetworks` value in sync.
+
+With this correctly configured: `Request.Scheme` resolves to `https`,
+Identity's `Secure` cookies are issued correctly, and password-reset/
+verification links use `https://modulemint.co.uk` (from
+`App__PublicBaseUrl`, never a Host header).
+
+## Why Build & Validate is off initially
+
+`Build & Validate` normally validates a generated plugin by installing and
+activating it in a disposable WordPress container - the app calls the
+`docker` CLI directly for this (`DockerPluginValidator`), which needs the
+host's Docker socket mounted into the app container. That grants the app
+container effective root on the host, so it is **not** enabled for this
+initial production deployment: `VALIDATION_ENABLED=false` (→
+`Validation:Enabled`, the same setting `ProjectsController`/
+`PluginsController` already check).
+
+With it off: standard `Build Plugin` works normally (1 credit, no Docker
+involved). The `Build & Validate` button is now hidden on the Builder page
+- `GET /api/credits` returns `validationEnabled: false`, and `app.js` hides
+the option when that's false, rather than showing a button that would fail
+every time. Attempting the underlying `POST /api/projects/build` with
+`validated: true` while disabled still returns the existing clean
+`ValidationUnavailable` error server-side regardless of the UI.
+
+Local development is unaffected - `docker-compose.saas.yml`,
+`docker-compose.validate.yml`, and `scripts/Validate-GeneratedPlugin.ps1`
+are unrelated compose files/scripts and keep working exactly as before.
+
+## Backups
+
+Same three things as the general "Backup / restore" section above, with
+this stack's actual volume names:
+
+```bash
+# 1. PostgreSQL - logical dump via the running container
+docker exec modulemint-postgres-1 pg_dump -U modulemint -d modulemint -F c -f /tmp/modulemint-backup.dump
+docker cp modulemint-postgres-1:/tmp/modulemint-backup.dump ./modulemint-backup.dump
+
+# 2. Artifact ZIPs and 3. Data Protection keys - the named volumes
+docker run --rm -v modulemint_artifacts:/data -v "$(pwd)":/backup alpine \
+  tar czf /backup/modulemint-artifacts.tar.gz -C /data .
+docker run --rm -v modulemint_dpkeys:/data -v "$(pwd)":/backup alpine \
+  tar czf /backup/modulemint-dpkeys.tar.gz -C /data .
+```
+
+Back up the database and artifacts together, at roughly the same time, so a
+restore never reintroduces a project/version row whose ZIP no longer
+exists. No backup is sent anywhere automatically - copy these files to
+wherever your own backup process/retention policy expects them. Production
+secrets (`.env.production`) are not part of this - keep them backed up
+separately, through whatever secure process the server administrator
+already uses for credentials, never alongside application data.
+
+## Production update
+
+1. **Back up** (above) - non-negotiable before any update.
+2. **Pull the new release** (`git pull` or however this host receives
+   releases).
+3. **Build the new image**: `docker compose --env-file .env.production -f docker/docker-compose.production.yml -p modulemint build`.
+4. **Apply new migrations, if any** (same command as first-time setup step
+   4) - before starting the new version.
+5. **Start/update**: `docker compose --env-file .env.production -f docker/docker-compose.production.yml -p modulemint up -d` -
+   Compose recreates only the `modulemint` service if `postgres` is
+   unchanged, so there's no unnecessary database downtime.
+6. **Verify** `https://modulemint.co.uk` loads.
+7. **Verify login** with an existing test account.
+8. **Verify OpenAI planning** (Builder → describe → Create Plan).
+9. **Verify a standard plugin build/download** completes.
+
+`scripts/Deploy-Production.sh` runs steps 2-5 plus a health-check wait, with
+a confirmation prompt for step 1 - it does not perform steps 6-9, which
+need a human.
+
+## Rollback
+
+- Keep the previous image available where practical (e.g. tag builds, or
+  keep the previous git commit checked out in a separate directory) so a
+  bad deploy can be redeployed quickly - `docker compose ... build` from
+  the previous commit, then `up -d` again.
+- Database migrations in this codebase are forward-only (see "Database
+  migrations" above) - do not attempt to reverse one blindly. If a bad
+  migration must be undone, restore the database backup taken in step 1 of
+  the update procedure, understanding that discards any writes made since
+  that backup.
+- Never run `docker compose ... down -v` in production - it deletes the
+  named volumes (database, artifacts, Data Protection keys) along with the
+  containers. Plain `down` (no `-v`) or just recreating the `modulemint`
+  service preserves all three.
+
+## Troubleshooting
+
+- **`docker compose up` fails immediately with a `:?` error message** - a
+  required variable in `.env.production` is blank; the message names which
+  one.
+- **App container exits right after starting** - check
+  `docker compose --env-file .env.production -f docker/docker-compose.production.yml -p modulemint logs modulemint`;
+  the Production startup check (see "Required environment variables"
+  above) throws a clear, non-secret error naming the category of missing
+  config.
+- **`https://modulemint.co.uk` doesn't load but `curl http://127.0.0.1:18473/health/ready`
+  on the server does** - the problem is the Plesk reverse proxy config, not
+  the app; re-check the proxy target/port and that Plesk's HTTPS
+  certificate is issued.
+- **Users get logged out after every deploy** - the Data Protection key
+  volume (`modulemint_dpkeys`) isn't persisting; confirm it wasn't removed
+  with a `down -v` and that the volume is still attached in
+  `docker-compose.production.yml`.
+- **Password reset / verification emails don't arrive** - check
+  `RESEND_API_KEY` is a real, active key, and that this domain's DNS
+  records for Resend (SPF/DKIM) are configured - that's done in your DNS
+  provider, not this codebase (see "Email domain" note below).
+- **`Build & Validate` doesn't appear on the Builder page** - expected with
+  `VALIDATION_ENABLED=false` (see "Why Build & Validate is off" above), not
+  a bug.
+
+## Email domain (DNS)
+
+Resend needs this domain's DNS records (SPF/DKIM, typically TXT/CNAME
+entries Resend's own dashboard provides) configured for
+`modulemint.co.uk` so `no-reply@modulemint.co.uk` mail is deliverable and
+not marked as spam. This is a DNS change made with whoever manages
+`modulemint.co.uk`'s DNS - outside this codebase and outside what an
+automated deployment can do.

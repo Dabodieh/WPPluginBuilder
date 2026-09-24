@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WPAIPlugin.Api.Credits;
 using WPAIPlugin.Api.Entitlements;
+using WPAIPlugin.Api.Validation;
 
 namespace WPAIPlugin.Api.Controllers;
 
@@ -24,15 +25,18 @@ public sealed class CreditsController : ControllerBase
     private readonly CreditOptions _creditOptions;
     private readonly BuildEntitlementService _entitlementService;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly ValidationOptions _validationOptions;
 
     public CreditsController(
         CreditService creditService, IOptions<CreditOptions> creditOptions,
-        BuildEntitlementService entitlementService, UserManager<IdentityUser> userManager)
+        BuildEntitlementService entitlementService, UserManager<IdentityUser> userManager,
+        IOptions<ValidationOptions> validationOptions)
     {
         _creditService = creditService;
         _creditOptions = creditOptions.Value;
         _entitlementService = entitlementService;
         _userManager = userManager;
+        _validationOptions = validationOptions.Value;
     }
 
     [HttpGet]
@@ -53,6 +57,7 @@ public sealed class CreditsController : ControllerBase
             freeBuildsRemaining,
             standardBuildCost = _creditOptions.StandardBuildCost,
             validatedBuildCost = _creditOptions.ValidatedBuildCost,
+            validationEnabled = _validationOptions.Enabled,
         });
     }
 }

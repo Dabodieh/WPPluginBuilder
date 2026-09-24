@@ -243,6 +243,7 @@ async function refreshCredits() {
     const credits = await response.json();
     el("creditBalance").textContent = `Credits: ${credits.balance}`;
     el("freeBuildsBalance").textContent = `Free builds: ${credits.freeBuildsRemaining}`;
+    setHidden("buildValidateOption", credits.validationEnabled === false);
     // Planning never consumes a free build - only Build does.
     el("planFreeBuildsTag").textContent =
       `Planning is free · ${credits.freeBuildsRemaining} free build${credits.freeBuildsRemaining === 1 ? "" : "s"} remaining`;

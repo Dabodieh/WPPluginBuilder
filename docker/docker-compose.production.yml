@@ -1,0 +1,99 @@
+# Production deployment for a single Plesk host with Docker.
+#
+# Plesk terminates HTTPS at https://modulemint.co.uk and reverse-proxies to
+# http://127.0.0.1:18473 - the only host port this stack publishes. Nothing
+# else is reachable from outside this machine: PostgreSQL is only reachable
+# from the "modulemint" service over the internal compose network.
+#
+# Copy .env.production.example to .env.production (gitignored, real
+# secrets), then:
+#   docker compose --env-file .env.production -f docker/docker-compose.production.yml -p modulemint up -d --build
+#
+# See docs/DEPLOYMENT.md "Plesk + Docker Deployment" for the full runbook
+# (migrations, backups, updates, rollback, troubleshooting).
+name: modulemint
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-modulemint}
+      POSTGRES_USER: ${POSTGRES_USER:-modulemint}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a real password in .env.production, never here}
+    volumes:
+      - modulemint_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-modulemint}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Internal only - no ports: mapping, so this is unreachable from the
+    # host or the internet, only from the "modulemint" service below.
+
+  modulemint:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-modulemint};Username=${POSTGRES_USER:-modulemint};Password=${POSTGRES_PASSWORD:?}"
+      Planning__DefaultProvider: openai
+      Planning__OpenAI__ApiKey: ${OPENAI_API_KEY:?set a real key in .env.production, never here}
+      App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:?set https://modulemint.co.uk in .env.production}
+      Support__Email: ${SUPPORT_EMAIL:?set a real monitored support address in .env.production}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:?set a real sender address in .env.production}
+      Email__FromName: ${EMAIL_FROM_NAME:-ModuleMint}
+      Resend__ApiKey: ${RESEND_API_KEY:?set a real key in .env.production, never here}
+      # Initial production launch: no Docker-in-container validation (see
+      # "Validated builds" in docs/DEPLOYMENT.md - the app container never
+      # gets the host Docker socket). Standard builds are unaffected.
+      Validation__Enabled: ${VALIDATION_ENABLED:-false}
+      # Optional: promotes this email to Admin on first startup after it
+      # registers (see docs/DEPLOYMENT.md "Admin bootstrap"). Leave unset
+      # until you know which account that should be.
+      Admin__BootstrapEmail: ${ADMIN_BOOTSTRAP_EMAIL:-}
+      # Plesk (running directly on the host, not in a container) connects to
+      # this published port from 127.0.0.1 - but Docker's own NAT rewrites
+      # that host-originated connection's source address to this project's
+      # bridge gateway IP by the time it reaches the container (verified:
+      # not 127.0.0.1). KnownProxies alone therefore never matches under
+      # real Docker networking - trust this project's own bridge subnet
+      # instead (defined below), which is exactly one hop: Plesk -> this
+      # container, never reachable from the internet or another project's
+      # containers on the same shared host.
+      ForwardedHeaders__KnownNetworks__0: 172.28.90.0/24
+      ForwardedHeaders__KnownProxies__0: 127.0.0.1
+      ForwardedHeaders__KnownProxies__1: "::1"
+    volumes:
+      - modulemint_artifacts:/app/App_Data/artifacts
+      - modulemint_dpkeys:/app/App_Data/dataprotection-keys
+      # Deliberately no Docker socket mount - see "Validated builds" above.
+    ports:
+      # Host-side localhost-only binding: reachable only from this machine
+      # (i.e. from Plesk's own reverse proxy), never directly from the
+      # internet. Do not change this to "18473:8080" (which would bind all
+      # interfaces) or add any other public port mapping here.
+      - "127.0.0.1:18473:8080"
+    # No container-level HEALTHCHECK: the aspnet:8.0 base image has no curl/
+    # wget to probe GET /health/live with (see Dockerfile). Point Plesk's
+    # own proxy health check, or an external monitor, at that path instead.
+
+networks:
+  default:
+    # Fixed, narrow subnet (not Docker's auto-assigned default) so the
+    # ForwardedHeaders:KnownNetworks trust above is exact and predictable,
+    # rather than trusting whatever range Docker happens to assign - which
+    # could otherwise overlap with, or need to be widened to cover, other
+    # unrelated projects' containers on this same shared Plesk host.
+    ipam:
+      config:
+        - subnet: 172.28.90.0/24
+
+volumes:
+  modulemint_db:
+  modulemint_artifacts:
+  modulemint_dpkeys:
