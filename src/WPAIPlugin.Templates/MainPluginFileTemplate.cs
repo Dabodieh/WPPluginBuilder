@@ -55,8 +55,15 @@ public static class MainPluginFileTemplate
 
     private static string EscapeHeaderValue(string value)
     {
-        // WordPress plugin header values live in a single-line PHP doc-comment;
-        // strip newlines so a malicious/careless value cannot break out of the header block.
-        return value.Replace("\r", " ").Replace("\n", " ").Trim();
+        // WordPress plugin header values live inside a single /** ... */
+        // PHP doc-comment. Newlines are stripped so a value cannot break
+        // onto its own line, and any "*/" sequence is broken up so a value
+        // can never terminate that comment early - without this, the rest
+        // of the header (and everything up to the next literal "*/") would
+        // stop being a comment and become live, executed PHP. The inserted
+        // space is a deliberate, visible mutation: safety over preserving a
+        // byte sequence that is never a meaningful part of a real plugin
+        // name/description/author.
+        return value.Replace("\r", " ").Replace("\n", " ").Replace("*/", "* /").Trim();
     }
 }

@@ -113,7 +113,8 @@ public class PluginBuilderTests
         var phpContent = ReadEntryText(result.ZipBytes, "staff-directory/staff-directory.php");
 
         Assert.Contains("add_shortcode( 'staff_directory', 'staff_directory_shortcode' );", phpContent);
-        Assert.Contains("<div class=\"staff-directory\">\n    Staff Directory\n</div>", phpContent);
+        Assert.Contains("<div class=\"staff-directory\">'", phpContent);
+        Assert.Contains("esc_html( 'Staff Directory' )", phpContent);
     }
 
     [Fact]
@@ -257,6 +258,51 @@ public class PluginBuilderTests
         Assert.Contains("wp_unschedule_event(", phpContent);
         Assert.Contains("add_action( 'staff_directory_cleanup',", phpContent);
         Assert.Contains("// Placeholder: implement the 'Cleanup Old Entries' task here.", phpContent);
+    }
+
+    // --- Security regression: hostile PluginSpec free-text values (C-1/H-1) ---
+    //
+    // PluginSpecValidator deliberately places no character restriction on
+    // Name/Description/Author (WordPress plugin names/descriptions may
+    // legitimately contain punctuation) - so the generator itself, not the
+    // validator, is the safety boundary for these fields. This proves a
+    // spec carrying attack payloads in every free-text field still builds,
+    // and that none of those payloads reach the generated PHP unescaped.
+    [Fact]
+    public void Build_HostileFreeTextValues_NeverProduceUnescapedPhpOrHtmlBreakout()
+    {
+        const string hostileHeaderValue = "Test */ echo 'HEADER-INJECTION'; /* phpinfo(); die('x')";
+        const string hostileHtmlValue = "<img src=x onerror=alert('XSS')>";
+
+        var builder = new PluginBuilder();
+        var spec = new PluginSpec
+        {
+            Name = hostileHtmlValue,
+            Slug = "staff-directory",
+            Description = hostileHeaderValue,
+            Version = "1.0.0",
+            Author = hostileHeaderValue,
+            Features = new List<string> { "shortcode" },
+        };
+
+        var result = builder.Build(spec);
+        var phpContent = ReadEntryText(result.ZipBytes, "staff-directory/staff-directory.php");
+
+        // C-1: the header comment (docblock) is never terminated early by a
+        // hostile Name/Description/Author - exactly one real "*/" (the
+        // intended close) exists between the opening "/**" and the ABSPATH
+        // guard that always immediately follows it.
+        var headerStart = phpContent.IndexOf("/**", StringComparison.Ordinal);
+        var guardStart = phpContent.IndexOf("// Prevent direct file access.", StringComparison.Ordinal);
+        Assert.True(headerStart >= 0 && guardStart > headerStart);
+        var headerBlock = phpContent[headerStart..guardStart];
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(headerBlock, System.Text.RegularExpressions.Regex.Escape("*/")));
+        Assert.EndsWith("*/\n\n", headerBlock);
+
+        // H-1: the hostile plugin Name reaches the shortcode's HTML output
+        // only through esc_html(), never as raw HTML inside the returned string.
+        Assert.Contains("esc_html( '<img src=x onerror=alert(\\'XSS\\')>' )", phpContent);
+        Assert.DoesNotMatch(new System.Text.RegularExpressions.Regex(@"return\s+'[^']*<img"), phpContent);
     }
 
     private static string ReadEntryText(byte[] zipBytes, string entryName)

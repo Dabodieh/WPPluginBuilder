@@ -18,9 +18,14 @@ public static class ShortcodeTemplate
         var sb = new StringBuilder();
         sb.Append("// Shortcode: [").Append(shortcodeTag).Append("]\n");
         sb.Append("function ").Append(functionName).Append("( $atts = array() ) {\n");
-        sb.Append("\treturn '<div class=\"").Append(slug).Append("\">\n");
-        sb.Append("    ").Append(EscapeSingleQuotedPhp(pluginName)).Append("\n");
-        sb.Append("</div>';\n");
+        // pluginName is untrusted HTML output, not PHP source: PHP-string-
+        // escaping it (EscapeSingleQuotedPhp) only stops it from breaking the
+        // PHP string literal - it does nothing to stop it from carrying live
+        // HTML/JS into the page when the shortcode renders. esc_html() is
+        // the separate, required escaping for that separate context.
+        sb.Append("\treturn '<div class=\"").Append(slug).Append("\">'\n");
+        sb.Append("\t\t. \"\\n    \" . esc_html( '").Append(EscapeSingleQuotedPhp(pluginName)).Append("' )\n");
+        sb.Append("\t\t. \"\\n</div>\";\n");
         sb.Append("}\n");
         sb.Append("add_shortcode( '").Append(shortcodeTag).Append("', '").Append(functionName).Append("' );\n");
 
