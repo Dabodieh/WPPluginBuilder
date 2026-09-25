@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WPAIPlugin.Api.Data;
+using WPAIPlugin.Api.Entitlements;
 using WPAIPlugin.Api.Payments;
 
 namespace WPAIPlugin.Api.Promotions;
@@ -20,6 +21,17 @@ public sealed class PromotionResolution
 /// <summary>Thrown when a customer-submitted promo code is invalid, expired, or ineligible. Message is always the same generic text - never reveals which specific rule failed, so campaign details/limits are not enumerable.</summary>
 public sealed class PromotionCodeException() : Exception("Invalid or expired code.");
 
+/// <summary>Outcome of <see cref="PromotionService.RedeemFreeBuildsCodeAsync"/>.</summary>
+public enum FreeBuildsRedemptionOutcome
+{
+    Success,
+    InvalidCode,
+    AlreadyRedeemed,
+}
+
+/// <summary>Result of <see cref="PromotionService.RedeemFreeBuildsCodeAsync"/>. FreeBuildsGranted is 0 unless Outcome is Success.</summary>
+public sealed record FreeBuildsRedemptionResult(FreeBuildsRedemptionOutcome Outcome, int FreeBuildsGranted);
+
 /// <summary>
 /// Resolves, validates, and records promotions (Promotions + Free Builds
 /// milestone). Deliberately small: three promotion types, five eligibility/
@@ -29,7 +41,10 @@ public sealed class PromotionCodeException() : Exception("Invalid or expired cod
 /// promotions, highest Priority wins, ties broken by CreatedAtUtc then Id -
 /// both deterministic, never dependent on browser time.
 /// </summary>
-public sealed class PromotionService(AppDbContext db, Microsoft.Extensions.Options.IOptions<CreditPackOptions> packOptions)
+public sealed class PromotionService(
+    AppDbContext db,
+    Microsoft.Extensions.Options.IOptions<CreditPackOptions> packOptions,
+    BuildEntitlementService entitlementService)
 {
     private readonly CreditPackOptions _packOptions = packOptions.Value;
 
@@ -113,17 +128,92 @@ public sealed class PromotionService(AppDbContext db, Microsoft.Extensions.Optio
     }
 
     /// <summary>
-    /// FreeBuilds code lookup only - does not grant or record anything itself
-    /// (the caller does that via BuildEntitlementService + RecordRedemptionAsync,
-    /// so both happen inside the same request under the same eligibility check).
+    /// Atomically validates and redeems a FreeBuilds promo code for one user,
+    /// then grants the entitlement - all inside a single database
+    /// transaction guarded by a row-level lock on the Promotion row
+    /// (PostgreSQL <c>SELECT ... FOR UPDATE</c>). That lock serializes every
+    /// concurrent redemption attempt for this promotion, across every
+    /// application instance, so the eligibility check below (which counts
+    /// existing redemption rows) can never read stale data: a losing
+    /// concurrent request blocks on the lock, then re-evaluates eligibility
+    /// against the winning request's already-committed redemption row.
+    ///
+    /// A plain unique index on (PromotionId, UserId) would be simpler, but
+    /// Promotion.MaxRedemptionsPerUser is admin-configurable to any positive
+    /// count, or unlimited (null) - a hard 1-row-per-user constraint would
+    /// silently break any promotion an admin configured for more than one
+    /// redemption per user. The row lock instead enforces whatever count the
+    /// promotion actually specifies, exactly as IsEligibleAsync already did,
+    /// just without the race.
+    ///
+    /// The lock is only acquired against a relational database. EF Core's
+    /// InMemory provider (used by this project's test suite) has no
+    /// transaction/row-locking support at all - production always runs on
+    /// PostgreSQL (see Program.cs's UseNpgsql), where the lock is the real
+    /// concurrency guard.
     /// </summary>
-    public async Task<Promotion?> FindValidFreeBuildsCodeAsync(string userId, string code, CancellationToken cancellationToken = default)
+    public async Task<FreeBuildsRedemptionResult> RedeemFreeBuildsCodeAsync(
+        string userId, string code, CancellationToken cancellationToken = default)
     {
         var normalized = NormalizeCode(code);
-        if (normalized is null) return null;
-        var promotion = await db.Promotions.AsNoTracking().SingleOrDefaultAsync(p => p.Code == normalized, cancellationToken);
-        if (promotion is null || promotion.Type != PromotionType.FreeBuilds) return null;
-        return await IsEligibleAsync(promotion, userId, null, cancellationToken) ? promotion : null;
+        if (normalized is null)
+            return new FreeBuildsRedemptionResult(FreeBuildsRedemptionOutcome.InvalidCode, 0);
+
+        var promotionId = await db.Promotions.AsNoTracking()
+            .Where(p => p.Code == normalized && p.Type == PromotionType.FreeBuilds)
+            .Select(p => (Guid?)p.Id).SingleOrDefaultAsync(cancellationToken);
+        if (promotionId is null)
+            return new FreeBuildsRedemptionResult(FreeBuildsRedemptionOutcome.InvalidCode, 0);
+
+        // EF Core's InMemory provider (this project's test host) cannot open
+        // a real transaction at all - it logs/throws on BeginTransactionAsync
+        // rather than silently no-op'ing. Only open one against a relational
+        // (production: PostgreSQL) connection, where it is also what makes
+        // the row lock below and the redemption+grant commit/rollback
+        // atomic.
+        var transaction = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        await using (transaction)
+        {
+            Promotion? promotion;
+            if (db.Database.IsRelational())
+            {
+                var locked = await db.Promotions
+                    .FromSqlInterpolated($"SELECT * FROM \"Promotions\" WHERE \"Id\" = {promotionId.Value} FOR UPDATE")
+                    .ToListAsync(cancellationToken);
+                promotion = locked.SingleOrDefault();
+            }
+            else
+            {
+                promotion = await db.Promotions.SingleOrDefaultAsync(p => p.Id == promotionId.Value, cancellationToken);
+            }
+
+            if (promotion is null || promotion.Type != PromotionType.FreeBuilds)
+                return new FreeBuildsRedemptionResult(FreeBuildsRedemptionOutcome.InvalidCode, 0);
+
+            if (!await IsEligibleAsync(promotion, userId, packId: null, cancellationToken))
+                return new FreeBuildsRedemptionResult(FreeBuildsRedemptionOutcome.AlreadyRedeemed, 0);
+
+            db.PromotionRedemptions.Add(new PromotionRedemption
+            {
+                Id = Guid.NewGuid(), PromotionId = promotion.Id, UserId = userId, PurchaseId = null,
+                BenefitType = PromotionBenefitType.FreeBuilds, BenefitAmount = promotion.Value, CreatedAtUtc = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+
+            // Only after this request has won the redemption row above does
+            // it grant the entitlement - same transaction, so a grant
+            // failure rolls back the redemption claim too; neither is ever
+            // left half-applied.
+            var reference = $"promotion:{Guid.NewGuid()}";
+            await entitlementService.GrantAsync(
+                userId, promotion.Value, BuildEntitlementTransactionType.PromotionGrant, reference, promotion.Id, cancellationToken);
+
+            if (transaction is not null)
+                await transaction.CommitAsync(cancellationToken);
+            return new FreeBuildsRedemptionResult(FreeBuildsRedemptionOutcome.Success, promotion.Value);
+        }
     }
 
     /// <summary>

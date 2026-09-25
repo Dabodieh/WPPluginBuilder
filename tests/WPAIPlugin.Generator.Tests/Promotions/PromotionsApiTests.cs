@@ -557,4 +557,98 @@ public class PromotionsApiTests
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    // --- FreeBuilds redemption limits (concurrency-race fix regression) ------
+    //
+    // These verify the *sequential* correctness of RedeemFreeBuildsCodeAsync's
+    // atomic claim-then-grant flow: exactly the right number of redemptions
+    // succeed, no more, no fewer. They intentionally do NOT attempt to prove
+    // the concurrent-request race itself is closed - EF Core's InMemory
+    // provider (used by ProjectsTestFactory) has no real transaction/row-
+    // locking support, so PromotionService.RedeemFreeBuildsCodeAsync always
+    // takes its non-locking fallback path here (see IsRelational() in that
+    // method) and a true parallel-request proof would pass or fail on
+    // InMemory scheduling accidents, not on the fix itself. The real guard -
+    // PostgreSQL's SELECT ... FOR UPDATE - only exists on a relational
+    // connection; verifying it requires a live PostgreSQL instance, which
+    // this sandboxed environment does not have running (see the security fix
+    // completion report for exact manual verification steps against
+    // docker/docker-compose.saas.yml's db service).
+
+    private static Promotion FreeBuilds(string code, int value, int? maxRedemptions = null, int? maxPerUser = null) => new()
+    {
+        Id = Guid.NewGuid(), Name = code, Code = code, Type = PromotionType.FreeBuilds,
+        Value = value, RequiresCode = true, StartsAtUtc = DateTime.UtcNow.AddDays(-1), IsEnabled = true,
+        MaxRedemptions = maxRedemptions, MaxRedemptionsPerUser = maxPerUser,
+        Eligibility = PromotionEligibility.Everyone, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow,
+    };
+
+    [Fact]
+    public async Task FreeBuildsCode_SecondSequentialRedemption_RejectedAsAlreadyRedeemed()
+    {
+        using var factory = new ProjectsTestFactory();
+        var promotion = FreeBuilds("ONEUSE", value: 5, maxPerUser: 1);
+        await SeedAsync(factory, db => db.Promotions.Add(promotion));
+        using var client = await Register(factory, $"buyer-{Guid.NewGuid()}@example.com");
+
+        var first = await client.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "ONEUSE" });
+        var second = await client.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "ONEUSE" });
+
+        first.EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+        var secondBody = await second.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("This promotion has already been redeemed.", secondBody.GetProperty("error").GetString());
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1, await db.PromotionRedemptions.CountAsync(r => r.PromotionId == promotion.Id));
+        var account = await db.BuildEntitlementAccounts.SingleAsync();
+        Assert.Equal(5, account.RemainingBuilds);
+    }
+
+    [Fact]
+    public async Task FreeBuildsCode_MaxRedemptionsPerUserAboveOne_AllowsExactlyThatManyThenRejects()
+    {
+        // Guards against a naive fix that clamps every FreeBuilds code to a
+        // single redemption per user regardless of the admin-configured
+        // MaxRedemptionsPerUser value.
+        using var factory = new ProjectsTestFactory();
+        var promotion = FreeBuilds("TWICE", value: 3, maxPerUser: 2);
+        await SeedAsync(factory, db => db.Promotions.Add(promotion));
+        using var client = await Register(factory, $"buyer-{Guid.NewGuid()}@example.com");
+
+        var first = await client.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "TWICE" });
+        var second = await client.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "TWICE" });
+        var third = await client.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "TWICE" });
+
+        first.EnsureSuccessStatusCode();
+        second.EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.BadRequest, third.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(2, await db.PromotionRedemptions.CountAsync(r => r.PromotionId == promotion.Id));
+        var account = await db.BuildEntitlementAccounts.SingleAsync();
+        Assert.Equal(6, account.RemainingBuilds);
+    }
+
+    [Fact]
+    public async Task FreeBuildsCode_GlobalMaxRedemptionsReached_RejectsFurtherRedemptionsAcrossUsers()
+    {
+        using var factory = new ProjectsTestFactory();
+        var promotion = FreeBuilds("LIMITED", value: 4, maxRedemptions: 1);
+        await SeedAsync(factory, db => db.Promotions.Add(promotion));
+        using var firstClient = await Register(factory, $"buyer-{Guid.NewGuid()}@example.com");
+        using var secondClient = await Register(factory, $"buyer-{Guid.NewGuid()}@example.com");
+
+        var first = await firstClient.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "LIMITED" });
+        var second = await secondClient.PostJsonWithCsrfAsync("/api/promotions/redeem", new { code = "LIMITED" });
+
+        first.EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1, await db.PromotionRedemptions.CountAsync(r => r.PromotionId == promotion.Id));
+    }
 }

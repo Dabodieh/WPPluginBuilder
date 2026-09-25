@@ -14,10 +14,10 @@ public static class PromotionBenefitType
 /// natural dedup key (unique index - a webhook retry can only ever produce
 /// one redemption row per Purchase). For a FreeBuilds code redemption there is
 /// no Purchase, so PurchaseId is null; per-user/global limits are enforced by
-/// counting existing rows for the promotion (see PromotionService - this is a
-/// best-effort check, not a database-level constraint, since a true N-per-user
-/// limit under concurrency needs more than a unique index; documented in
-/// PROMOTIONS-FREE-BUILDS-COMPLETION.md as an accepted, low-stakes limitation).
+/// counting existing rows for the promotion under a row-level lock on the
+/// Promotion itself (see PromotionService.RedeemFreeBuildsCodeAsync), which
+/// closes the concurrent-redemption race a plain count check or unique index
+/// alone cannot.
 /// </summary>
 public sealed class PromotionRedemption
 {

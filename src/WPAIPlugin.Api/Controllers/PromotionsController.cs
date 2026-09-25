@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using WPAIPlugin.Api.Data;
 using WPAIPlugin.Api.Entitlements;
 using WPAIPlugin.Api.Promotions;
 
@@ -51,21 +50,18 @@ public sealed class PromotionsController : ControllerBase
             return BadRequest(new { error = "Invalid or expired code." });
         }
 
-        var promotion = await _promotionService.FindValidFreeBuildsCodeAsync(userId, request.Code, cancellationToken);
-        if (promotion is null)
+        var result = await _promotionService.RedeemFreeBuildsCodeAsync(userId, request.Code, cancellationToken);
+        switch (result.Outcome)
         {
-            return BadRequest(new { error = "Invalid or expired code." });
+            case FreeBuildsRedemptionOutcome.InvalidCode:
+                return BadRequest(new { error = "Invalid or expired code." });
+            case FreeBuildsRedemptionOutcome.AlreadyRedeemed:
+                return BadRequest(new { error = "This promotion has already been redeemed." });
         }
-
-        var reference = $"promotion:{Guid.NewGuid()}";
-        await _entitlementService.GrantAsync(
-            userId, promotion.Value, BuildEntitlementTransactionType.PromotionGrant, reference, promotion.Id, cancellationToken);
-        await _promotionService.RecordRedemptionAsync(
-            promotion.Id, userId, purchaseId: null, PromotionBenefitType.FreeBuilds, promotion.Value, cancellationToken);
 
         return Ok(new RedeemPromotionResponse
         {
-            FreeBuildsGranted = promotion.Value,
+            FreeBuildsGranted = result.FreeBuildsGranted,
             FreeBuildsRemaining = await _entitlementService.GetRemainingAsync(userId, cancellationToken),
         });
     }
