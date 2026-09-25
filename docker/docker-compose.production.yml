@@ -48,6 +48,13 @@ services:
       Email__FromAddress: ${EMAIL_FROM_ADDRESS:?set a real sender address in .env.production}
       Email__FromName: ${EMAIL_FROM_NAME:-ModuleMint}
       Resend__ApiKey: ${RESEND_API_KEY:?set a real key in .env.production, never here}
+      # Signup-farming hardening: always on in production (Program.cs's
+      # production startup check refuses to boot without a real site/secret
+      # key pair here regardless of this flag) - never made configurable to
+      # "off" in this compose file, unlike Validation/Admin below.
+      SignupProtection__Turnstile__Enabled: "true"
+      SignupProtection__Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:?set a real Cloudflare Turnstile site key in .env.production}
+      SignupProtection__Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:?set a real Cloudflare Turnstile secret key in .env.production, never here}
       # Initial production launch: no Docker-in-container validation (see
       # "Validated builds" in docs/DEPLOYMENT.md - the app container never
       # gets the host Docker socket). Standard builds are unaffected.

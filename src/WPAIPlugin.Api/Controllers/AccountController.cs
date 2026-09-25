@@ -34,6 +34,8 @@ public sealed class AccountController : ControllerBase
     private readonly ITransactionalEmailSender _emailSender;
     private readonly AppOptions _appOptions;
     private readonly AppDbContext _db;
+    private readonly ITurnstileVerifier _turnstileVerifier;
+    private readonly TurnstileOptions _turnstileOptions;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
@@ -46,6 +48,8 @@ public sealed class AccountController : ControllerBase
         ITransactionalEmailSender emailSender,
         IOptions<AppOptions> appOptions,
         AppDbContext db,
+        ITurnstileVerifier turnstileVerifier,
+        IOptions<TurnstileOptions> turnstileOptions,
         ILogger<AccountController> logger)
     {
         _userManager = userManager;
@@ -57,12 +61,29 @@ public sealed class AccountController : ControllerBase
         _emailSender = emailSender;
         _appOptions = appOptions.Value;
         _db = db;
+        _turnstileVerifier = turnstileVerifier;
+        _turnstileOptions = turnstileOptions.Value;
         _logger = logger;
     }
 
     [HttpGet("csrf")]
     public IActionResult Csrf([FromServices] IAntiforgery antiforgery) =>
         Ok(new { token = antiforgery.GetAndStoreTokens(HttpContext).RequestToken });
+
+    /// <summary>
+    /// Enumeration-safe: identical status code, response shape, and message
+    /// whether this request just created a genuinely new account or was an
+    /// attempt against an email that already has one (sequential duplicate,
+    /// or the losing side of a concurrent-registration race) - see the three
+    /// call sites in <see cref="Register"/>. Never includes the submitted
+    /// email, an Identity error code/description, or any database detail.
+    /// Nothing is emailed to an existing account merely because someone
+    /// attempted to register it - that would be an email-bombing vector;
+    /// resend-verification/forgot-password remain the only ways to receive
+    /// one, each with its own separate rate limit.
+    /// </summary>
+    private IActionResult RegistrationAccepted() =>
+        Ok(new { message = "If your details are valid, check your email for the next step." });
 
     [EnableRateLimiting("account")]
     [HttpPost("register")]
@@ -73,12 +94,63 @@ public sealed class AccountController : ControllerBase
             return BadRequest(new { error = "Email and password are required." });
         }
 
+        // Cloudflare Turnstile, when enabled, runs before any database write
+        // (before the Identity account is even attempted) - the per-IP
+        // "account" rate limit above (cheap, local) has already run by the
+        // time this executes, so an attacker cannot generate unlimited
+        // Turnstile verification traffic before hitting that limit. Any
+        // ambiguous outcome (missing token, invalid token, provider timeout/
+        // error) fails the registration closed - never creates an account
+        // while verification cannot be established. The token itself is
+        // never logged.
+        if (_turnstileOptions.Enabled)
+        {
+            // A missing/blank token never reaches the verifier - there is
+            // nothing to verify, so there is no reason to spend an outbound
+            // Cloudflare call (or a test double's call count) on it.
+            var verified = !string.IsNullOrWhiteSpace(request.TurnstileToken)
+                && await _turnstileVerifier.VerifyAsync(
+                    request.TurnstileToken, HttpContext.Connection.RemoteIpAddress?.ToString());
+            if (!verified)
+            {
+                return BadRequest(new { error = "Please complete the verification challenge and try again." });
+            }
+        }
+
         await using var transaction = _db.Database.IsRelational()
             ? await _db.Database.BeginTransactionAsync(CancellationToken.None) : null;
         var user = new IdentityUser { UserName = request.Email, Email = request.Email };
-        var result = await _userManager.CreateAsync(user, request.Password);
+        IdentityResult result;
+        try
+        {
+            result = await _userManager.CreateAsync(user, request.Password);
+        }
+        catch (DbUpdateException)
+        {
+            // Identity's own uniqueness check (a query, run before this
+            // insert) is not atomic with the insert itself - two concurrent
+            // registrations for the same address can both pass it and then
+            // race for the database's own unique index (UserNameIndex). The
+            // loser lands here, not in the `!result.Succeeded` branch below.
+            // This is an expected, foreseeable outcome of a normal race
+            // (or a scripted signup-farming attempt), not a server error -
+            // the enumeration-safe response, identical to a real success, so
+            // neither a racing client nor a sequential duplicate attempt can
+            // tell "already exists" apart from "just created".
+            return RegistrationAccepted();
+        }
         if (!result.Succeeded)
+        {
+            if (result.Errors.Any(e => e.Code is "DuplicateUserName" or "DuplicateEmail"))
+            {
+                // Account-existence-sensitive: never disclosed. Contrast
+                // with the branch below, which still returns real validation
+                // detail (e.g. password policy) - that's safe to disclose
+                // and useful, and isn't tied to whether the address exists.
+                return RegistrationAccepted();
+            }
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+        }
 
         try
         {
@@ -143,11 +215,7 @@ public sealed class AccountController : ControllerBase
         }
 
         await _signInManager.SignInAsync(user, isPersistent: true);
-        return Ok(new
-        {
-            email = user.Email,
-            message = "Your account has been created. Check your email to verify your address before creating plugins.",
-        });
+        return RegistrationAccepted();
     }
 
     [EnableRateLimiting("account")]
@@ -583,6 +651,9 @@ public sealed class RegisterRequest
 {
     public string? Email { get; set; }
     public string? Password { get; set; }
+
+    /// <summary>Cloudflare Turnstile response token from the registration widget. Only checked/required when SignupProtection:Turnstile:Enabled is true.</summary>
+    public string? TurnstileToken { get; set; }
 }
 
 public sealed class LoginRequest

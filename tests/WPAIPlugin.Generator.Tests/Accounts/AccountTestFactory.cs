@@ -19,6 +19,8 @@ public sealed class AccountTestFactory : WebApplicationFactory<Program>
 
     public FakeTransactionalEmailSender FakeEmailSender { get; } = new();
 
+    public WPAIPlugin.Generator.Tests.Security.FakeTurnstileVerifier FakeTurnstileVerifier { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -34,6 +36,10 @@ public sealed class AccountTestFactory : WebApplicationFactory<Program>
             services.PostConfigure<WPAIPlugin.Api.Configuration.AppOptions>(o => o.PublicBaseUrl = "https://modulemint.test");
             services.RemoveAll<WPAIPlugin.Api.Email.ITransactionalEmailSender>();
             services.AddSingleton<WPAIPlugin.Api.Email.ITransactionalEmailSender>(FakeEmailSender);
+            // Never call the real Cloudflare endpoint from a test - see
+            // ProjectsTestFactory's identical wiring for the shared reasoning.
+            services.RemoveAll<WPAIPlugin.Api.Security.ITurnstileVerifier>();
+            services.AddSingleton<WPAIPlugin.Api.Security.ITurnstileVerifier>(FakeTurnstileVerifier);
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));

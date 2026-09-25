@@ -35,13 +35,23 @@ public class ProductionSecurityTests
                 ["Email:FromAddress"] = "no-reply@modulemint.test",
                 ["Email:FromName"] = "ModuleMint",
                 ["Resend:ApiKey"] = "re_test_marker",
+                // Required alongside the above in Production since the
+                // signup-farming hardening milestone (SignupProtection:Turnstile).
+                ["SignupProtection:Turnstile:Enabled"] = "true",
+                ["SignupProtection:Turnstile:SiteKey"] = "1x00000000000000000000AA",
+                ["SignupProtection:Turnstile:SecretKey"] = Secret,
             }));
             if (configure is not null) builder.ConfigureServices(configure);
         });
     private static HttpClient Client(WebApplicationFactory<Program> factory) => factory.CreateClient(
         new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+    // Turnstile is enabled in this file's Production() config (see the
+    // SignupProtection:Turnstile keys there) - a token is always included so
+    // every existing Register() call site keeps exercising the rest of the
+    // flow unaffected; FakeTurnstileVerifier (wired by ProjectsTestFactory)
+    // accepts it deterministically without ever reaching Cloudflare.
     private static Task<HttpResponseMessage> Register(HttpClient client) => client.PostJsonWithCsrfAsync(
-        "/api/account/register", new { email = $"security-{Guid.NewGuid()}@example.com", password = "Str0ng!Passw0rd" });
+        "/api/account/register", new { email = $"security-{Guid.NewGuid()}@example.com", password = "Str0ng!Passw0rd", turnstileToken = "fake-token" });
 
     [Theory]
     [InlineData("/api/plugins/build")]

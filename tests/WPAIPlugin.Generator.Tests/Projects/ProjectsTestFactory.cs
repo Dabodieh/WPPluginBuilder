@@ -37,6 +37,8 @@ public sealed class ProjectsTestFactory : WebApplicationFactory<Program>
 
     public FakePaymentGateway FakePaymentGateway { get; } = new();
 
+    public WPAIPlugin.Generator.Tests.Security.FakeTurnstileVerifier FakeTurnstileVerifier { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -85,6 +87,13 @@ public sealed class ProjectsTestFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IPaymentGateway>();
             services.AddSingleton<IPaymentGateway>(FakePaymentGateway);
+
+            // Never call the real Cloudflare endpoint from a test. Registered
+            // regardless of SignupProtection:Turnstile:Enabled, so any test
+            // that turns Turnstile on via PostConfigure still exercises a
+            // deterministic verifier, not a live network call.
+            services.RemoveAll<WPAIPlugin.Api.Security.ITurnstileVerifier>();
+            services.AddSingleton<WPAIPlugin.Api.Security.ITurnstileVerifier>(FakeTurnstileVerifier);
             services.PostConfigure<StripeOptions>(o =>
             {
                 o.SecretKey = "sk_test_fake";

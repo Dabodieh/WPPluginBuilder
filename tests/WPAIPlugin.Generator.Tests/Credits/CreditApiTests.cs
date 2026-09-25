@@ -33,7 +33,10 @@ public class CreditApiTests
         using var factory = new ProjectsTestFactory();
         using var first = await Register(factory);
         Assert.Equal(100, await Balance(first));
-        Assert.Equal(HttpStatusCode.BadRequest, (await first.PostJsonWithCsrfAsync("/api/account/register",
+        // Enumeration-safe (account-enumeration hardening): a duplicate
+        // registration attempt returns 200, the same as a new one - the
+        // balance assertions below are what actually prove no second grant.
+        Assert.Equal(HttpStatusCode.OK, (await first.PostJsonWithCsrfAsync("/api/account/register",
             new { email = "credits@example.com", password = Password })).StatusCode);
         (await first.PostJsonWithCsrfAsync("/api/projects/build", new { spec = Spec })).EnsureSuccessStatusCode();
         using var second = await Register(factory, "second@example.com");

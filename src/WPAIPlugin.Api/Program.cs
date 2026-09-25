@@ -252,6 +252,13 @@ builder.Services.AddOptions<WPAIPlugin.Api.Credits.CreditOptions>()
 builder.Services.AddScoped<WPAIPlugin.Api.Credits.CreditService>();
 builder.Services.AddScoped<WPAIPlugin.Api.Security.AdminAuditService>();
 
+// Cloudflare Turnstile on registration (signup-farming hardening milestone).
+// Disabled by default; production requires it enabled with real keys - see
+// the production-only validation block below.
+builder.Services.AddOptions<WPAIPlugin.Api.Security.TurnstileOptions>()
+    .BindConfiguration(WPAIPlugin.Api.Security.TurnstileOptions.SectionName);
+builder.Services.AddHttpClient<WPAIPlugin.Api.Security.ITurnstileVerifier, WPAIPlugin.Api.Security.TurnstileVerifier>();
+
 // Free-build entitlements + promotions (Promotions + Free Builds milestone):
 // a distinct entitlement from credits, ledger-backed exactly like
 // CreditService. The launch-critical "2 free builds on signup" offer is a
@@ -326,6 +333,10 @@ if (!builder.Environment.IsDevelopment())
     builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
 var app = builder.Build();
 
+// Read once at startup for the CSP middleware below - Turnstile enablement
+// is a deployment-time decision, not a per-request one.
+var turnstileEnabled = app.Services.GetRequiredService<IOptions<WPAIPlugin.Api.Security.TurnstileOptions>>().Value.Enabled;
+
 if (!app.Environment.IsDevelopment())
 {
     var configuration = app.Configuration;
@@ -351,6 +362,15 @@ if (!app.Environment.IsDevelopment())
         || string.IsNullOrWhiteSpace(configuration["Email:FromName"])
         || string.IsNullOrWhiteSpace(configuration["Resend:ApiKey"]))
         throw new InvalidOperationException("Production requires public base URL, support email, sender email identity, and Resend configuration.");
+
+    // Signup-farming hardening: production must run with Turnstile actually
+    // enabled and fully configured - never silently fall back to unprotected
+    // registration the way Stripe/Docker-validation are allowed to be
+    // optional. A misconfigured deployment must fail to start, not start
+    // unprotected.
+    var turnstile = app.Services.GetRequiredService<IOptions<WPAIPlugin.Api.Security.TurnstileOptions>>().Value;
+    if (!turnstile.Enabled || string.IsNullOrWhiteSpace(turnstile.SiteKey) || string.IsNullOrWhiteSpace(turnstile.SecretKey))
+        throw new InvalidOperationException("Production requires Cloudflare Turnstile to be enabled with a site key and secret key configured.");
 }
 // Never allow configured artifact storage to become a static file directory.
 var artifactRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath,
@@ -379,6 +399,14 @@ app.Use(async (context, next) =>
         if (app.Environment.IsDevelopment() && context.Request.Path.StartsWithSegments("/swagger"))
             context.Response.Headers.ContentSecurityPolicy = context.Response.Headers.ContentSecurityPolicy.ToString()
                 .Replace("script-src 'self';", "script-src 'self' 'unsafe-inline';");
+        // Turnstile's widget loads its own script and renders inside an
+        // iframe from challenges.cloudflare.com - only the registration page
+        // needs either relaxation, and only when Turnstile is actually
+        // configured on. Every other page keeps the strict default CSP.
+        if (turnstileEnabled && context.Request.Path.StartsWithSegments("/register.html"))
+            context.Response.Headers.ContentSecurityPolicy = context.Response.Headers.ContentSecurityPolicy.ToString()
+                .Replace("script-src 'self';", "script-src 'self' https://challenges.cloudflare.com;")
+                .Replace("object-src 'none';", "object-src 'none'; frame-src https://challenges.cloudflare.com;");
         if (context.Request.Path.StartsWithSegments("/api")) context.Response.Headers.CacheControl = "no-store";
         return Task.CompletedTask;
     });

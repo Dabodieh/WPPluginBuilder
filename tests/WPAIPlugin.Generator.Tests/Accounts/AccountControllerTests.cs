@@ -32,16 +32,45 @@ public class AccountControllerTests : IClassFixture<AccountTestFactory>
     }
 
     [Fact]
-    public async Task Register_DuplicateEmail_IsRejected()
+    public async Task Register_DuplicateEmail_ReturnsEnumerationSafeResponse()
     {
         var client = NewClient(_factory);
         var email = $"dup-{Guid.NewGuid()}@example.com";
         var request = new { email, password = "Str0ng!Passw0rd" };
 
-        await client.PostJsonWithCsrfAsync("/api/account/register", request);
+        var first = await client.PostJsonWithCsrfAsync("/api/account/register", request);
         var second = await client.PostJsonWithCsrfAsync("/api/account/register", request);
 
-        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+        // Enumeration-safe (account-enumeration hardening): a duplicate
+        // registration attempt returns the exact same status code and body
+        // shape as a genuinely new one - never "already taken", never the
+        // submitted email, never an Identity error code.
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        var firstBody = await first.Content.ReadAsStringAsync();
+        var secondBody = await second.Content.ReadAsStringAsync();
+        Assert.Equal(firstBody, secondBody);
+        Assert.DoesNotContain(email, secondBody);
+        Assert.DoesNotContain("already", secondBody, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Register_WeakPassword_StillReturnsUsefulValidationError()
+    {
+        // Account-existence-sensitive errors (DuplicateUserName/Email) are
+        // hidden behind the generic response, but a genuine, safe-to-
+        // disclose validation failure - not tied to whether the address
+        // exists - must still return real, actionable detail.
+        var client = NewClient(_factory);
+
+        var response = await client.PostJsonWithCsrfAsync("/api/account/register", new
+        {
+            email = $"weakpw-{Guid.NewGuid()}@example.com",
+            password = "weak",
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("errors", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

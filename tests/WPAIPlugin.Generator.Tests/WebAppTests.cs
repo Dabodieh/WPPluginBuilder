@@ -109,8 +109,35 @@ public class WebAppTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(25, pack.GetProperty("credits").GetInt32());
         Assert.Equal(499, pack.GetProperty("amountMinor").GetInt32());
         Assert.Equal("GBP", pack.GetProperty("currency").GetString());
-        Assert.DoesNotContain("key", raw, StringComparison.OrdinalIgnoreCase);
+        // turnstileSiteKey is the one intentional exception to "no key-shaped
+        // data" - Cloudflare designs it to be public/embedded in page JS.
+        // Disabled here (no PostConfigure sets it on), so it must be null.
+        Assert.False(body.GetProperty("turnstileEnabled").GetBoolean());
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, body.GetProperty("turnstileSiteKey").ValueKind);
         Assert.DoesNotContain("secret", raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PublicConfig_TurnstileEnabled_ExposesSiteKeyOnlyNeverSecretKey()
+    {
+        const string secretKeyMarker = "turnstile-secret-should-never-leak";
+        using var configured = _factory.WithWebHostBuilder(b => b.ConfigureServices(s =>
+            s.PostConfigure<WPAIPlugin.Api.Security.TurnstileOptions>(o =>
+            {
+                o.Enabled = true;
+                o.SiteKey = "1x00000000000000000000AA";
+                o.SecretKey = secretKeyMarker;
+            })));
+        var client = configured.CreateClient();
+
+        var response = await client.GetAsync("/api/config/public");
+
+        response.EnsureSuccessStatusCode();
+        var raw = await response.Content.ReadAsStringAsync();
+        var body = System.Text.Json.JsonDocument.Parse(raw).RootElement;
+        Assert.True(body.GetProperty("turnstileEnabled").GetBoolean());
+        Assert.Equal("1x00000000000000000000AA", body.GetProperty("turnstileSiteKey").GetString());
+        Assert.DoesNotContain(secretKeyMarker, raw);
     }
 
     [Fact]
